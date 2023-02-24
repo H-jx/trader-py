@@ -1,0 +1,5 @@
+{
+    "code-runner.executorMapByFileExtension": {
+        "python": "python3",
+    }
+}
