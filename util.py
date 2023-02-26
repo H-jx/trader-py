@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
 
-
 def get_interval(hours = 72)  -> tuple[str, str] :
     """
     Get the start and end datetime for a given number of hours back from now.
@@ -14,8 +13,8 @@ def get_interval(hours = 72)  -> tuple[str, str] :
     # 获取当前时间
     now = datetime.now()
 
-    # 计算72小时前的时间
-    past_time = now - timedelta(hours)
+    # 计算指定小时数前的时间
+    past_time = now - timedelta(hours=hours)
 
     # 格式化时间
     start_time = past_time.strftime('%Y-%m-%d %H:%M:%S')
