@@ -5,9 +5,11 @@ import requests
 import logging
 import pandas as pd
 from stable_baselines3 import DQN
+from stable_baselines import ACER
 from collections import deque
 from util import get_interval
 from TradingEnv import TradingEnv
+from TradingEnv2 import TradingEnv2
 from sklearn.preprocessing import StandardScaler
 
 def get_history(symbol: str, start_time: str=None, end_time: str=None):
@@ -102,14 +104,17 @@ def analyze_data():
     env = TradingEnv(df)
 
     # 定义模型和超参数
-    model = DQN("MlpPolicy", env, learning_rate=1e-3, buffer_size=50000, batch_size=64, verbose=0)
-    model.learn(total_timesteps=100000)
+    # model = DQN("MlpPolicy", env, learning_rate=1e-3, buffer_size=50000, batch_size=64, verbose=0)
+    model = ACER("MlpPolicy", env, verbose=1, tensorboard_log="./logs/")
+    model.learn(total_timesteps=int(2e6), tb_log_name='run')
+    model.save("acer_trading")
 
     # 回测
     obs = env.reset()
     for i in range(len(df) - 1):
         action, _ = model.predict(obs)
         obs, reward, done, info = env.step(action)
+        env.render()
         if done:
             break
     
