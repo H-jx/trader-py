@@ -38,7 +38,7 @@ def get_history(symbol: str, start_time: str=None, end_time: str=None):
         logging.error(f"{url}: {e}")
 
 def download():
-    start_time, end_time = get_interval(1000)
+    start_time, end_time = get_interval(1200)
     symbol = "ETHUSDT"
     print(start_time, end_time)
     arr = get_history(symbol, start_time, end_time)
@@ -50,7 +50,7 @@ def download():
 
 def analyze_data():
     # 读取JSON文件
-    with open('data/ETHUSDT-2023-01-15.json', 'r') as f:
+    with open('data/ETHUSDT-2023-01-08.json', 'r') as f:
         data = json.load(f)
     # 转换为DataFrame
     df = pd.DataFrame(data)
@@ -62,7 +62,7 @@ def analyze_data():
     df['ma10'] = df['close'].rolling(window=10).mean()
     df['ma30'] = df['close'].rolling(window=30).mean()
     df['ma60'] = df['close'].rolling(window=60).mean()
-    df['close/ma60'] = df['close'] / df['ma60']
+    df['close/ma60'] = (df['close'] - df['ma60']) / df['ma60']
     df['ma5'] = df['close'].rolling(window=5).mean()
     df['buy'] = pd.to_numeric(df['buy'], errors='coerce')
     df['sell'] = pd.to_numeric(df['sell'], errors='coerce')
@@ -71,30 +71,33 @@ def analyze_data():
     df['sell/amount'] = df['sell'] / df['amount']
     df['amount_ma20'] = df['amount'].rolling(window=20).mean()
     df['amount/amount_ma20'] = df['amount'] / df['amount_ma20']
+    df['amount/amount_ma20'] = df['amount/amount_ma20'].apply(lambda x: 1 if x > 1 else (-1 if x < -1 else x))
     df['timestamp'] = pd.to_datetime(df['time'], errors='coerce')
     df['changepercent'] = (df['close'] - df['close'].shift(1)) / df['close'].shift(1) * 100
     df['label'] = 0
 
     df.loc[(df['changepercent'] > 0.1) & (df['amount_ma20'] > 2), 'label'] = 1
     df.loc[(df['changepercent'] < -0.1) & (df['amount_ma20'] > 2), 'label'] = -1
-    # 保存close列
-    close = df['close']
-    label = df['label']
-    # 从df中删除close列
-    df.drop(['close', 'label'], axis=1, inplace=True)
-    df.drop(['usdtPrice', 'symbol', 'id', 'timestamp', 'time'], axis=1, inplace=True)
 
-    print(df.columns)
+
+
+    print(df.head(5))
+
     # df.to_excel('data/out.xlsx', index=False)
     df.dropna(inplace=True)
     scaler = StandardScaler()
     # 标准化处理
-    scaler.fit(df)
-    df = pd.DataFrame(scaler.transform(df), columns=df.columns)
-    # 将close列添加回DataFrame
-    df['close'] = close
-    df['label'] = label
-    print(df.head(5))
+    df2 = pd.DataFrame()
+    df2['changepercent'] = df['changepercent']
+    # df2['close'] = df['close']
+    # df2['ma60'] = df['ma60']
+    scaler.fit(df2)
+    df2 = pd.DataFrame(scaler.transform(df2), columns=df2.columns)
+    df2['close/ma60'] = df['close/ma60']
+    df2['buy/amount'] = df['buy/amount']
+    df2['sell/amount'] = df['sell/amount']
+    df2['amount/amount_ma20'] = df['amount/amount_ma20']
+    print(df2.tail(5))
     # 创建TradingEnv实例
     env = TradingEnv(df)
 
@@ -109,7 +112,8 @@ def analyze_data():
         obs, reward, done, info = env.step(action)
         if done:
             break
-
+    
     print('Profit: %.2f%%' % (env.profit * 100))
+    env.save_model('./mode', model)
 analyze_data()
-
+ 

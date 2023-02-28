@@ -15,7 +15,7 @@ class TradingEnv(gym.Env):
         self.df = data
         self.reward_range = (-1, 1)
         self.action_space = gym.spaces.Discrete(3)  # 买入，卖出，不操作
-        self.observation_space = gym.spaces.Box(low=-1, high=1, shape=(6,))
+        self.observation_space = gym.spaces.Box(low=-1.4, high=1.3, shape=(5,))
         
     def reset(self):
         self.current_step = 0
@@ -56,7 +56,7 @@ class TradingEnv(gym.Env):
             self.df.iloc[self.current_step]['sell/amount'],
             self.df.iloc[self.current_step]['amount/amount_ma20'],
             self.df.iloc[self.current_step]['changepercent'],
-            self.df.iloc[self.current_step]['label']
+            # self.df.iloc[self.current_step]['label']
         ])
         return obs
 
@@ -84,8 +84,8 @@ class TradingEnv(gym.Env):
         # 将模型传递给 Gym 环境
         env = gym.make('MyEnv')
         env.set_model(model)
-    def save_model(self, path, model):
-            save_model(model, path)
+    def save_model(self, path, model: DQN):
+            model.save(path)
             print(f"Model saved to {path}")
 
     @classmethod
