@@ -5,7 +5,7 @@ import requests
 import logging
 import pandas as pd
 from stable_baselines3 import DQN
-from stable_baselines import ACER
+# from stable_baselines import ACER
 from collections import deque
 from util import get_interval
 from TradingEnv import TradingEnv
@@ -78,13 +78,13 @@ def analyze_data():
     df['changepercent'] = (df['close'] - df['close'].shift(1)) / df['close'].shift(1) * 100
     df['label'] = 0
 
-    df.loc[(df['changepercent'] > 0.1) & (df['amount_ma20'] > 2), 'label'] = 1
-    df.loc[(df['changepercent'] < -0.1) & (df['amount_ma20'] > 2), 'label'] = -1
+    df.loc[(df['changepercent'] > 0.1) & (df['amount_ma20'] > 1) & df['close/ma60'] > 0, 'label'] = 1
+    df.loc[(df['changepercent'] < -0.1) & (df['amount_ma20'] > 1) & df['close/ma60'] < 0, 'label'] = -1
 
 
 
     print(df.head(5))
-
+    df.to_json('data/out-ETHUSDT-2023-01-08.json', orient="records", force_ascii=False, lines="orient")
     # df.to_excel('data/out.xlsx', index=False)
     df.dropna(inplace=True)
     scaler = StandardScaler()
@@ -101,24 +101,24 @@ def analyze_data():
     df2['amount/amount_ma20'] = df['amount/amount_ma20']
     print(df2.tail(5))
     # 创建TradingEnv实例
-    env = TradingEnv(df)
+    env = TradingEnv2(df)
 
-    # 定义模型和超参数
+    # # 定义模型和超参数
     # model = DQN("MlpPolicy", env, learning_rate=1e-3, buffer_size=50000, batch_size=64, verbose=0)
-    model = ACER("MlpPolicy", env, verbose=1, tensorboard_log="./logs/")
-    model.learn(total_timesteps=int(2e6), tb_log_name='run')
-    model.save("acer_trading")
+    # # model = ACER("MlpPolicy", env, verbose=1, tensorboard_log="./logs/")
+    # model.learn(total_timesteps=int(2e6), tb_log_name='run')
+    # model.save("acer_trading")
 
-    # 回测
-    obs = env.reset()
-    for i in range(len(df) - 1):
-        action, _ = model.predict(obs)
-        obs, reward, done, info = env.step(action)
-        env.render()
-        if done:
-            break
+    # # 回测
+    # obs = env.reset()
+    # for i in range(len(df) - 1):
+    #     action, _ = model.predict(obs)
+    #     obs, reward, done, info = env.step(action)
+    #     env.render()
+    #     if done:
+    #         break
     
-    print('Profit: %.2f%%' % (env.profit * 100))
-    env.save_model('./mode', model)
+    # print('Profit: %.2f%%' % (env.profit * 100))
+    # env.save_model('./mode', model)
 analyze_data()
  
