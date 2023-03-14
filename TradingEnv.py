@@ -15,7 +15,7 @@ class TradingEnv(gym.Env):
         self.df = data
         self.reward_range = (-1, 1)
         self.action_space = gym.spaces.Discrete(3)  # 买入，卖出，不操作
-        self.observation_space = gym.spaces.Box(low=-1.4, high=1.3, shape=(5,))
+        self.observation_space = gym.spaces.Box(low=-2, high=2, shape=(6,))
         
     def reset(self):
         self.current_step = 0
@@ -56,7 +56,7 @@ class TradingEnv(gym.Env):
             self.df.iloc[self.current_step]['sell/amount'],
             self.df.iloc[self.current_step]['amount/amount_ma20'],
             self.df.iloc[self.current_step]['changepercent'],
-            # self.df.iloc[self.current_step]['label']
+            self.df.iloc[self.current_step]['label']
         ])
         return obs
 
@@ -72,11 +72,11 @@ class TradingEnv(gym.Env):
         profit = round(self.profit * 100, 2)
         current_price = self.df.iloc[self.current_step]['close']
         if self.position == 1:
-            print(f'step: {self.current_step} {current_price} - 持有中 - 收益率: {profit}%')
+            print(f'step: {self.current_step} {current_price} - 买入持有中 - 收益率: {profit}%')
         elif self.position == -1:
-            print(f'step: {self.current_step} {current_price} - 空仓中 - 收益率: {profit}%')
-        else:
-            print(f'step: {self.current_step} {self.df.iloc[self.current_step]} - 空仓中 - 收益率: {profit}%')
+            print(f'step: {self.current_step} {current_price} - 卖出空仓中 - 收益率: {profit}%')
+        # else:
+        #     print(f'step: {self.current_step} {self.df.iloc[self.current_step]} - 空仓中 - 收益率: {profit}%')
     def load_model(path: str):
         # 加载已保存的模型
         model = tf.keras.models.load_model(path)

@@ -9,7 +9,7 @@ from stable_baselines3 import DQN
 from collections import deque
 from util import get_interval
 from TradingEnv import TradingEnv
-from TradingEnv2 import TradingEnv2
+# from TradingEnv2 import TradingEnv2
 from sklearn.preprocessing import StandardScaler
 
 def get_history(symbol: str, start_time: str=None, end_time: str=None):
@@ -40,12 +40,12 @@ def get_history(symbol: str, start_time: str=None, end_time: str=None):
         logging.error(f"{url}: {e}")
 
 def download():
-    start_time, end_time = get_interval(1200)
+    start_time, end_time = ["2023/01/08 18:26:44", "2023/03/15 18:26:44"]
     symbol = "ETHUSDT"
     print(start_time, end_time)
     arr = get_history(symbol, start_time, end_time)
     # 将数据写入JSON文件
-    with open(f"data/{symbol}-{start_time[0:10]}.json", 'w') as f:
+    with open(f"data/{symbol}-{start_time[0:10].replace('/', '-')}.json", 'w') as f:
         json.dump(arr, f)
 
 # download()
@@ -76,15 +76,15 @@ def analyze_data():
     df['amount/amount_ma20'] = df['amount/amount_ma20'].apply(lambda x: 1 if x > 1 else (-1 if x < -1 else x))
     df['timestamp'] = pd.to_datetime(df['time'], errors='coerce')
     df['changepercent'] = (df['close'] - df['close'].shift(1)) / df['close'].shift(1) * 100
-    df['label'] = 0
+    # df['label'] = 0
 
-    df.loc[(df['changepercent'] > 0.1) & (df['amount_ma20'] > 1) & df['close/ma60'] > 0, 'label'] = 1
-    df.loc[(df['changepercent'] < -0.1) & (df['amount_ma20'] > 1) & df['close/ma60'] < 0, 'label'] = -1
+    # df.loc[(df['changepercent'] > 0.1) & (df['amount_ma20'] > 1) & df['close/ma60'] > 0, 'label'] = 1
+    # df.loc[(df['changepercent'] < -0.1) & (df['amount_ma20'] > 1) & df['close/ma60'] < 0, 'label'] = -1
 
 
 
     print(df.head(5))
-    df.to_json('data/out-ETHUSDT-2023-01-08.json', orient="records", force_ascii=False, lines="orient")
+    # df.to_json('data/out-ETHUSDT-2023-01-08.json', orient="records", force_ascii=False, lines="orient")
     # df.to_excel('data/out.xlsx', index=False)
     df.dropna(inplace=True)
     scaler = StandardScaler()
@@ -99,26 +99,27 @@ def analyze_data():
     df2['buy/amount'] = df['buy/amount']
     df2['sell/amount'] = df['sell/amount']
     df2['amount/amount_ma20'] = df['amount/amount_ma20']
+    df2['label'] = df['label']
     print(df2.tail(5))
     # 创建TradingEnv实例
-    env = TradingEnv2(df)
+    env = TradingEnv(df)
 
-    # # 定义模型和超参数
-    # model = DQN("MlpPolicy", env, learning_rate=1e-3, buffer_size=50000, batch_size=64, verbose=0)
-    # # model = ACER("MlpPolicy", env, verbose=1, tensorboard_log="./logs/")
+    # 定义模型和超参数
+    model = DQN("MlpPolicy", env, learning_rate=1e-3, buffer_size=50000, batch_size=64, verbose=0)
+    # model = ACER("MlpPolicy", env, verbose=1, tensorboard_log="./logs/")
     # model.learn(total_timesteps=int(2e6), tb_log_name='run')
     # model.save("acer_trading")
 
-    # # 回测
-    # obs = env.reset()
-    # for i in range(len(df) - 1):
-    #     action, _ = model.predict(obs)
-    #     obs, reward, done, info = env.step(action)
-    #     env.render()
-    #     if done:
-    #         break
+    # 回测
+    obs = env.reset()
+    for i in range(len(df) - 1):
+        action, _ = model.predict(obs)
+        obs, reward, done, info = env.step(action)
+        # env.render()
+        if done:
+            break
     
-    # print('Profit: %.2f%%' % (env.profit * 100))
-    # env.save_model('./mode', model)
+    print('Profit: %.2f%%' % (env.profit * 100))
+    env.save_model('./mode', model)
 analyze_data()
  
