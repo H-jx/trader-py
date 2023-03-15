@@ -8,8 +8,8 @@ from stable_baselines3 import DQN
 # from stable_baselines import ACER
 from collections import deque
 from util import get_interval
-from TradingEnv import TradingEnv
-# from TradingEnv2 import TradingEnv2
+# from TradingEnv import TradingEnv
+from TradingEnv3 import TradingEnv3
 from sklearn.preprocessing import StandardScaler
 
 def get_history(symbol: str, start_time: str=None, end_time: str=None):
@@ -91,35 +91,37 @@ def analyze_data():
     # 标准化处理
     df2 = pd.DataFrame()
     df2['changepercent'] = df['changepercent']
-    # df2['close'] = df['close']
-    # df2['ma60'] = df['ma60']
-    scaler.fit(df2)
-    df2 = pd.DataFrame(scaler.transform(df2), columns=df2.columns)
+    df2['close'] = df['close']
+    df2['ma60'] = df['ma60']
+    # scaler.fit(df2)
+    # df2 = pd.DataFrame(scaler.transform(df2), columns=df2.columns)
     df2['close/ma60'] = df['close/ma60']
     df2['buy/amount'] = df['buy/amount']
     df2['sell/amount'] = df['sell/amount']
     df2['amount/amount_ma20'] = df['amount/amount_ma20']
     df2['label'] = df['label']
+
     print(df2.tail(5))
     # 创建TradingEnv实例
-    env = TradingEnv(df)
+    env = TradingEnv3(df)
 
     # 定义模型和超参数
-    model = DQN("MlpPolicy", env, learning_rate=1e-3, buffer_size=50000, batch_size=64, verbose=0)
+    model = DQN("MlpPolicy", env, learning_rate=1e-4, buffer_size=176390, batch_size=128, verbose=0)
+    # model = DQN.load('./modes/mode2')
     # model = ACER("MlpPolicy", env, verbose=1, tensorboard_log="./logs/")
-    # model.learn(total_timesteps=int(2e6), tb_log_name='run')
+    model.learn(total_timesteps=int(2e6), tb_log_name='run')
     # model.save("acer_trading")
-
+    # 开始训练数据
     # 回测
     obs = env.reset()
     for i in range(len(df) - 1):
         action, _ = model.predict(obs)
-        obs, reward, done, info = env.step(action)
-        # env.render()
+        obs, done = env.step(action)
+        env.render()
         if done:
             break
     
-    print('Profit: %.2f%%' % (env.profit * 100))
-    env.save_model('./mode', model)
+    print('Profit: %.2f%%' % (env.get_profit() * 100))
+    model.save('./modes/mode2')
 analyze_data()
  
