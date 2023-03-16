@@ -103,25 +103,25 @@ def analyze_data():
 
     print(df2.tail(5))
     # 创建TradingEnv实例
-    env = TradingEnv3(df)
+    env = TradingEnv3(df = df2)
 
     # 定义模型和超参数
     model = DQN("MlpPolicy", env, learning_rate=1e-4, buffer_size=176390, batch_size=128, verbose=0)
-    # model = DQN.load('./modes/mode2')
+    # env.load_model('./modes/mode.zip')
     # model = ACER("MlpPolicy", env, verbose=1, tensorboard_log="./logs/")
     model.learn(total_timesteps=int(2e6), tb_log_name='run')
+    # model.save('./modes/mode2')
     # model.save("acer_trading")
     # 开始训练数据
     # 回测
     obs = env.reset()
     for i in range(len(df) - 1):
         action, _ = model.predict(obs)
-        obs, done = env.step(action)
-        env.render()
+        obs, reward, done, info = env.step(action)
         if done:
             break
     
     print('Profit: %.2f%%' % (env.get_profit() * 100))
-    model.save('./modes/mode2')
+
 analyze_data()
  
