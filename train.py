@@ -90,7 +90,7 @@ def analyze_data():
 
     df2 = pd.DataFrame()
     
-    df2['close'] = df['close']
+  
     df2['close/ma60'] = df['close/ma60']
     df2['buy/amount'] = df['buy/amount']
     df2['sell/amount'] = df['sell/amount']
@@ -100,7 +100,7 @@ def analyze_data():
     scaler.fit(df2)
     df2 = pd.DataFrame(scaler.transform(df2), columns=df2.columns)
     df2['timestamp'] = df['timestamp']
- 
+    df2['close'] = df['close']
     print(df2.tail(5))
     trades = []
 
@@ -112,7 +112,7 @@ def analyze_data():
     # env.load_model('./modes/mode.zip')
     # model = ACER("MlpPolicy", env, verbose=1, tensorboard_log="./logs/")
     # df数据长度
-    print(df.count(axis = 'rows'))
+    print(df.count(axis = 'index'))
     # 开始训练数据
     model.learn(total_timesteps=16165 * 50, tb_log_name='run')
 
@@ -122,7 +122,7 @@ def analyze_data():
     for i in range(len(df) - 1):
         action, _ = model.predict(obs)
         obs, reward, done, info = env.step(action)
-        # env.render(action)
+        env.render(action)
         trades.append(info)
         if done:
             break
