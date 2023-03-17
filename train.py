@@ -90,38 +90,54 @@ def analyze_data():
     scaler = StandardScaler()
     # 标准化处理
     df2 = pd.DataFrame()
-    df2['changepercent'] = df['changepercent']
+
     df2['close'] = df['close']
-    df2['ma60'] = df['ma60']
+    df2['time'] = df['time']
     # scaler.fit(df2)
     # df2 = pd.DataFrame(scaler.transform(df2), columns=df2.columns)
+    df2['changepercent'] = df['changepercent']
     df2['close/ma60'] = df['close/ma60']
     df2['buy/amount'] = df['buy/amount']
-    df2['sell/amount'] = df['sell/amount']
+    # df2['sell/amount'] = df['sell/amount']
     df2['amount/amount_ma20'] = df['amount/amount_ma20']
-    df2['label'] = df['label']
 
+    
     print(df2.tail(5))
+    trades = []
+
     # 创建TradingEnv实例
-    env = TradingEnv3(df = df2)
+    env = TradingEnv3(df = df2,  keys=['close/ma60', 'buy/amount', 'amount/amount_ma20', 'changepercent'])
 
     # 定义模型和超参数
-    model = DQN("MlpPolicy", env, learning_rate=1e-4, buffer_size=176390, batch_size=128, verbose=0)
+    model = DQN("MlpPolicy", env, learning_rate=1e-4, buffer_size=200000, batch_size=128, verbose=0)
     # env.load_model('./modes/mode.zip')
     # model = ACER("MlpPolicy", env, verbose=1, tensorboard_log="./logs/")
-    model.learn(total_timesteps=int(2e6), tb_log_name='run')
-    # model.save('./modes/mode2')
-    # model.save("acer_trading")
+    # df数据长度
+
+
+    with open('./data/predict.json', 'r') as f:
+        json.dump(trades, f)
+    return
+    model.learn(total_timesteps=df.count() * 10, tb_log_name='run')
+ 
     # 开始训练数据
     # 回测
     obs = env.reset()
+
     for i in range(len(df) - 1):
         action, _ = model.predict(obs)
         obs, reward, done, info = env.step(action)
+        # env.render(action)
+        trades.append(info)
         if done:
             break
-    
+    if env.get_profit() > 0:
+        model.save('./modes/mode2')
+
     print('Profit: %.2f%%' % (env.get_profit() * 100))
+
+    # with open('data/predict.json', 'r') as f:
+    #     json.dump(trades, f)
 
 analyze_data()
  

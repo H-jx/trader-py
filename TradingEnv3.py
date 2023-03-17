@@ -2,6 +2,9 @@
 import numpy as np
 import gym
 import pickle
+import pandas as pd
+from typing import List
+
 # 用python实现一个TradingEnv(gym.Env)，功能为通过虚拟货币(ETHUSDT)历史数据训练模型
 # 1. 训练数据列： 'close' 'ma60' 'close/ma60' 'buy/amount' 'sell/amount' 'amount/amount_ma20' 'changepercent' 'label'， 训练时可以设置每次交易的数量，可以设置每次交易的时间间隔，可以设置每次交易的手续费，交易需要判断是否有足够的资金(USDT)，卖出时要判断是否有足够的货币量(ETH)
 # 2. 用模型预测未来的数据，根据预测的结果进行交易
@@ -10,9 +13,10 @@ import pickle
 # 5. 训练后的结果保存到数据库中
 
 class TradingEnv3(gym.Env):
-    def __init__(self, df, trade_size = 0.2, fee_rate = 0.001):
+    def __init__(self, df, keys: List[str], trade_size = 0.2, fee_rate = 0.001):
         # 初始化环境参数
         self.df = df # 历史数据
+        self.keys = keys # 训练数据列
         self.trade_size = trade_size # 每次交易的数量
         self.fee_rate = fee_rate # 每次交易的手续费率
         self.balance = 1000 # 初始资金（USDT）
@@ -24,7 +28,11 @@ class TradingEnv3(gym.Env):
         self.previous_asset_value = self.initial_asset
         # 定义动作空间和观察空间
         self.action_space = gym.spaces.Discrete(3) # 三种动作：买入、卖出、持有
-        self.observation_space = gym.spaces.Box(low=-2, high=self.df['close'].max(), shape=(8,)) 
+        low = np.array([self.df[key].min() for key in keys]).min()
+        high = np.array([self.df[key].max() for key in keys]).max()
+    
+        self.observation_space = gym.spaces.Box(low=int(low), high=int(high), shape=(len(keys),)) 
+
 
     def reset(self):
         # 重置环境状态
@@ -33,32 +41,39 @@ class TradingEnv3(gym.Env):
         self.current_step = 0 
         self.done = False 
         self.previous_asset_value = self.initial_asset
+
+        self.last_trade_time = pd.to_datetime(self.df.iloc[self.current_step]['time']).timestamp()
         return self._get_observation()
 
     def step(self, action):
-
+   
         # 执行一步动作，返回观察、奖励、是否结束和额外信息
         assert self.action_space.contains(action), "Invalid action"
 
         price = self.df.iloc[self.current_step]['close'] # 获取当前价格
-
-        if action == 0: # 买入
+        # can_trade = pd.to_datetime(self.df.iloc[self.current_step]['time']).timestamp() - self.last_trade_time > 900
+        can_trade = True
+        action_text = 'hold'
+        if action == 0 and can_trade: # 买入
             if self.balance >= price * self.trade_size: # 判断是否有足够的资金（USDT）
                 cost = price * self.trade_size * (1 + self.fee_rate) # 计算成本（USDT）
                 self.balance -= cost # 更新资金（USDT）
                 self.position += self.trade_size # 更新持仓（ETH）
-        elif action == 1: # 卖出
+                self.last_trade_time = pd.to_datetime(self.df.iloc[self.current_step]['time']).timestamp()
+                action_text = 'buy'
+        elif action == 1 and can_trade: # 卖出
             if self.position >= self.trade_size: # 判断是否有足够的持仓（ETH）
                 self.balance += price * self.trade_size * (1 - self.fee_rate) # 计算收入（USDT）
                 self.position -= self.trade_size# 更新持仓（ETH）
-
+                self.last_trade_time = pd.to_datetime(self.df.iloc[self.current_step]['time']).timestamp()
+                action_text = 'sell'
         self.current_step += 1
         done = self.current_step >= self.max_step
         observation = self._get_observation()# 获取观察
         reward = self._get_reward(action)# 获取奖励
-
-        self.render(action)
-        return observation, reward, done, {}
+        # print(self.df.iloc[self.current_step]['time'], action, reward)
+        # self.render(action, can_trade)
+        return observation, reward, done, {"action": action_text, "time": self.df.iloc[self.current_step]['time'], "price": price}
 
     def get_profit(self):
         current_asset = self.balance + self.position * self.df.iloc[self.current_step]['close']
@@ -79,16 +94,19 @@ class TradingEnv3(gym.Env):
         return reward
 
     def _get_observation(self):
-        obs = np.array([
-            self.df.iloc[self.current_step]['close'],
-            self.df.iloc[self.current_step]['ma60'],
-            self.df.iloc[self.current_step]['close/ma60'],
-            self.df.iloc[self.current_step]['buy/amount'],
-            self.df.iloc[self.current_step]['sell/amount'],
-            self.df.iloc[self.current_step]['amount/amount_ma20'],
-            self.df.iloc[self.current_step]['changepercent'],
-            self.df.iloc[self.current_step]['label']
-        ])
+        # obs = np.array([
+        #     self.df.iloc[self.current_step]['close'],
+        #     self.df.iloc[self.current_step]['ma60'],
+        #     self.df.iloc[self.current_step]['close/ma60'],
+        #     self.df.iloc[self.current_step]['buy/amount'],
+        #     self.df.iloc[self.current_step]['sell/amount'],
+        #     self.df.iloc[self.current_step]['amount/amount_ma20'],
+        #     self.df.iloc[self.current_step]['changepercent'],
+        #     self.df.iloc[self.current_step]['label']
+        # ])
+        ##  添加一个self.get_profit(), 作为观察值
+        obs = np.array([self.df.iloc[self.current_step][key] for key in self.keys])
+        # obs = np.array([self.df.iloc[self.current_step][key] for key in self.keys])
         return obs
 
     def load_model(self, model_path):
@@ -98,10 +116,12 @@ class TradingEnv3(gym.Env):
         with open(model_path, 'rb') as f:
             self.model = pickle.load(f)
 
-    def render(self, action):
+    def render(self, action, can_trade):
         price = self.df.iloc[self.current_step]['close'] # 获取当前价格
-
+        time = self.df.iloc[self.current_step]['time']
+        if can_trade == False:
+            return
         if action == 0:
-            print(f'step: {self.current_step} {price} - 买入 - 收益率: {round(self.get_profit(), 4) * 100}%')
+            print(f'step: {self.current_step} {price} {time} - 买入 - 收益率: {round(self.get_profit(), 4) * 100}%')
         elif action == 1:
-            print(f'step: {self.current_step} {price} - 卖出 - 收益率: {round(self.get_profit(), 4) * 100}%')
+            print(f'step: {self.current_step} {price} {time} - 卖出 - 收益率: {round(self.get_profit(), 4) * 100}%')
