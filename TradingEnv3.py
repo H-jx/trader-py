@@ -42,7 +42,7 @@ class TradingEnv3(gym.Env):
         self.done = False 
         self.previous_asset_value = self.initial_asset
 
-        self.last_trade_time = pd.to_datetime(self.df.iloc[self.current_step]['time']).timestamp()
+        self.last_trade_time = self.df.iloc[self.current_step]['timestamp']
         return self._get_observation()
 
     def step(self, action):
@@ -59,13 +59,13 @@ class TradingEnv3(gym.Env):
                 cost = price * self.trade_size * (1 + self.fee_rate) # 计算成本（USDT）
                 self.balance -= cost # 更新资金（USDT）
                 self.position += self.trade_size # 更新持仓（ETH）
-                self.last_trade_time = pd.to_datetime(self.df.iloc[self.current_step]['time']).timestamp()
+                self.last_trade_time = self.df.iloc[self.current_step]['timestamp']
                 action_text = 'buy'
         elif action == 1 and can_trade: # 卖出
             if self.position >= self.trade_size: # 判断是否有足够的持仓（ETH）
                 self.balance += price * self.trade_size * (1 - self.fee_rate) # 计算收入（USDT）
                 self.position -= self.trade_size# 更新持仓（ETH）
-                self.last_trade_time = pd.to_datetime(self.df.iloc[self.current_step]['time']).timestamp()
+                self.last_trade_time = self.df.iloc[self.current_step]['timestamp']
                 action_text = 'sell'
         self.current_step += 1
         done = self.current_step >= self.max_step
@@ -73,7 +73,7 @@ class TradingEnv3(gym.Env):
         reward = self._get_reward(action)# 获取奖励
         # print(self.df.iloc[self.current_step]['time'], action, reward)
         # self.render(action, can_trade)
-        return observation, reward, done, {"action": action_text, "time": self.df.iloc[self.current_step]['time'], "price": price}
+        return observation, reward, done, {"action": action_text, "time": self.df.iloc[self.current_step]['timestamp'], "price": price}
 
     def get_profit(self):
         current_asset = self.balance + self.position * self.df.iloc[self.current_step]['close']
@@ -94,16 +94,6 @@ class TradingEnv3(gym.Env):
         return reward
 
     def _get_observation(self):
-        # obs = np.array([
-        #     self.df.iloc[self.current_step]['close'],
-        #     self.df.iloc[self.current_step]['ma60'],
-        #     self.df.iloc[self.current_step]['close/ma60'],
-        #     self.df.iloc[self.current_step]['buy/amount'],
-        #     self.df.iloc[self.current_step]['sell/amount'],
-        #     self.df.iloc[self.current_step]['amount/amount_ma20'],
-        #     self.df.iloc[self.current_step]['changepercent'],
-        #     self.df.iloc[self.current_step]['label']
-        # ])
         ##  添加一个self.get_profit(), 作为观察值
         obs = np.array([self.df.iloc[self.current_step][key] for key in self.keys])
         # obs = np.array([self.df.iloc[self.current_step][key] for key in self.keys])
@@ -118,7 +108,8 @@ class TradingEnv3(gym.Env):
 
     def render(self, action, can_trade):
         price = self.df.iloc[self.current_step]['close'] # 获取当前价格
-        time = self.df.iloc[self.current_step]['time']
+        # 中国时间
+        time = pd.to_datetime(self.df.iloc[self.current_step]['timestamp']).tz_localize('UTC').tz_convert('Asia/Shanghai').format()
         if can_trade == False:
             return
         if action == 0:

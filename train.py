@@ -65,7 +65,6 @@ def analyze_data():
     df['ma30'] = df['close'].rolling(window=30).mean()
     df['ma60'] = df['close'].rolling(window=60).mean()
     df['close/ma60'] = (df['close'] - df['ma60']) / df['ma60']
-    df['ma5'] = df['close'].rolling(window=5).mean()
     df['buy'] = pd.to_numeric(df['buy'], errors='coerce')
     df['sell'] = pd.to_numeric(df['sell'], errors='coerce')
     df['amount'] = df['buy'] + df['sell']
@@ -73,8 +72,8 @@ def analyze_data():
     df['sell/amount'] = df['sell'] / df['amount']
     df['amount_ma20'] = df['amount'].rolling(window=20).mean()
     df['amount/amount_ma20'] = df['amount'] / df['amount_ma20']
-    df['amount/amount_ma20'] = df['amount/amount_ma20'].apply(lambda x: 1 if x > 1 else (-1 if x < -1 else x))
-    df['timestamp'] = pd.to_datetime(df['time'], errors='coerce')
+    # df['amount/amount_ma20'] = df['amount/amount_ma20'].apply(lambda x: 1 if x > 1 else (-1 if x < -1 else x))
+    df['timestamp'] = pd.to_datetime(df['time'], errors='coerce').apply(lambda x: x.timestamp())
     df['changepercent'] = (df['close'] - df['close'].shift(1)) / df['close'].shift(1) * 100
     # df['label'] = 0
 
@@ -88,39 +87,35 @@ def analyze_data():
     # df.to_excel('data/out.xlsx', index=False)
     df.dropna(inplace=True)
     scaler = StandardScaler()
-    # 标准化处理
-    df2 = pd.DataFrame()
 
+    df2 = pd.DataFrame()
+    
     df2['close'] = df['close']
-    df2['time'] = df['time']
-    # scaler.fit(df2)
-    # df2 = pd.DataFrame(scaler.transform(df2), columns=df2.columns)
-    df2['changepercent'] = df['changepercent']
     df2['close/ma60'] = df['close/ma60']
     df2['buy/amount'] = df['buy/amount']
-    # df2['sell/amount'] = df['sell/amount']
+    df2['sell/amount'] = df['sell/amount']
     df2['amount/amount_ma20'] = df['amount/amount_ma20']
-
-    
+    df2['changepercent'] = df['changepercent']
+    # 标准化处理
+    scaler.fit(df2)
+    df2 = pd.DataFrame(scaler.transform(df2), columns=df2.columns)
+    df2['timestamp'] = df['timestamp']
+ 
     print(df2.tail(5))
     trades = []
 
     # 创建TradingEnv实例
-    env = TradingEnv3(df = df2,  keys=['close/ma60', 'buy/amount', 'amount/amount_ma20', 'changepercent'])
+    env = TradingEnv3(df = df2,  keys=['close', 'close/ma60', 'buy/amount', 'sell/amount', 'amount/amount_ma20', 'changepercent'])
 
     # 定义模型和超参数
-    model = DQN("MlpPolicy", env, learning_rate=1e-4, buffer_size=200000, batch_size=128, verbose=0)
+    model = DQN("MlpPolicy", env, learning_rate=1e-5, buffer_size=100000, batch_size=128, verbose=0)
     # env.load_model('./modes/mode.zip')
     # model = ACER("MlpPolicy", env, verbose=1, tensorboard_log="./logs/")
     # df数据长度
-
-
-    with open('./data/predict.json', 'r') as f:
-        json.dump(trades, f)
-    return
-    model.learn(total_timesteps=df.count() * 10, tb_log_name='run')
- 
+    print(df.count(axis = 'rows'))
     # 开始训练数据
+    model.learn(total_timesteps=16165 * 50, tb_log_name='run')
+
     # 回测
     obs = env.reset()
 
@@ -136,8 +131,8 @@ def analyze_data():
 
     print('Profit: %.2f%%' % (env.get_profit() * 100))
 
-    # with open('data/predict.json', 'r') as f:
-    #     json.dump(trades, f)
+    with open('data/predict.json', 'w') as f:
+        json.dump(trades, f)
 
 analyze_data()
  
