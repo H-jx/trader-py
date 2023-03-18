@@ -1,16 +1,18 @@
-import sys
-import os
 import json
-import requests
 import logging
-import pandas as pd
-from stable_baselines3 import DQN
-# from stable_baselines import ACER
-from collections import deque
-from util import get_interval
-from TradingEnv import TradingEnv
 
+import pandas as pd
+import requests
 from sklearn.preprocessing import StandardScaler
+from stable_baselines3 import DQN
+
+from trader.TradingEnv import TradingEnv
+from trader.util import get_interval
+
+# from stable_baselines import ACER
+# from collections import deque
+
+
 
 def get_history(symbol: str, start_time: str=None, end_time: str=None):
     """Fetches trade history for a given symbol and time range.
@@ -51,8 +53,9 @@ def download():
 # download()
 
 def analyze_data():
+
     # 读取JSON文件
-    with open('data/ETHUSDT-2023-01-08.json', 'r') as f:
+    with open('./data/ETHUSDT-2023-01-08.json', 'r') as f:
         data = json.load(f)
     # 转换为DataFrame
     df = pd.DataFrame(data)
@@ -84,8 +87,7 @@ def analyze_data():
     # df.loc[(df['changepercent'] < -0.1) & (df['amount_ma20'] > 1) & df['close/ma60'] < 0, 'label'] = -1
 
     print(df.head(5))
-    # df.to_json('data/out-ETHUSDT-2023-01-08.json', orient="records", force_ascii=False, lines="orient")
-    # df.to_excel('data/out.xlsx', index=False)
+
 
     scaler = StandardScaler()
 
@@ -133,8 +135,7 @@ def analyze_data():
 
     print('Profit: %.2f%%' % (env.get_profit() * 100))
 
-    with open('data/predict.json', 'w') as f:
+    with open('./data/predict.json', 'w') as f:
         json.dump(trades, f)
 
-analyze_data()
  

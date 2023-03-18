@@ -1,5 +1,9 @@
+import threading
+
 from flask import Flask, render_template
 from flask_socketio import SocketIO, emit
+
+from trader import analyze_data
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
@@ -23,4 +27,6 @@ def handle_message(message):
     emit('message', message, broadcast=True)
 
 if __name__ == '__main__':
+    t = threading.Thread(target=analyze_data)
+    t.start()
     socketio.run(app)
