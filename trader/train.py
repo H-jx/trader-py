@@ -62,7 +62,6 @@ def analyze_data():
     # 计算5日均线和10日均线
 
     df['close'] = pd.to_numeric(df['usdtPrice'])
-
     df['ma5'] = df['close'].rolling(window=5).mean()
     df['ma10'] = df['close'].rolling(window=10).mean()
     df['ma30'] = df['close'].rolling(window=30).mean()
@@ -75,12 +74,12 @@ def analyze_data():
     df['sell/amount'] = df['sell'] / df['amount']
     df['amount_ma20'] = df['amount'].rolling(window=20).mean()
     df['amount/amount_ma20'] = df['amount'] / df['amount_ma20']
+    
     # df['amount/amount_ma20'] = df['amount/amount_ma20'].apply(lambda x: 1 if x > 1 else (-1 if x < -1 else x))
     # time的格式如下：2023-03-14T15:40:00.000Z， 我想转为时间戳
-
-         
     df['timestamp'] = pd.to_datetime(df['time'], errors='coerce').apply(lambda x: x.timestamp())
-    df['changepercent'] = (df['close'] - df['close'].shift(1)) / df['close'].shift(1) * 100
+    df['changepercent'] = (df['close'] - df['close'].shift(1)) / df['close'].shift(1)
+    df = df.dropna().reset_index(drop=True)
     # df['label'] = 0
     # print(df['timestamp'].head(5))
     # df.loc[(df['changepercent'] > 0.1) & (df['amount_ma20'] > 1) & df['close/ma60'] > 0, 'label'] = 1
@@ -94,22 +93,26 @@ def analyze_data():
     df2 = pd.DataFrame()
     
   
-    df2['close/ma60'] = df['close/ma60']
-    df2['amount/amount_ma20'] = df['amount/amount_ma20']
-    df2['changepercent'] = df['changepercent']
+   
+    df2['sclose'] = df['close']
+    df2['ma30'] = df['ma30']
+    df2['ma60'] = df['ma60']
     # 标准化处理
     scaler.fit(df2)
     df2 = pd.DataFrame(scaler.transform(df2), columns=df2.columns)
+    df2['amount/amount_ma20'] = df['amount/amount_ma20']
+    df2['close/ma60'] = df['close/ma60']
     df2['time'] = df['time']
     df2['timestamp'] = df['timestamp']
     df2['close'] = df['close']
     df2['buy/amount'] = df['buy/amount']
     df2['sell/amount'] = df['sell/amount']
-    print(df2.tail(5), df2['close'][0])
+    df2['changepercent'] = df['changepercent']
+    print(df2.head(20))
     trades = []
 
     # 创建TradingEnv实例
-    env = TradingEnv(df = df2,  keys=['close', 'close/ma60', 'buy/amount', 'sell/amount', 'amount/amount_ma20', 'changepercent'])
+    env = TradingEnv(df = df2,  keys=['sclose', 'ma30', 'ma60', 'close/ma60', 'buy/amount', 'sell/amount', 'amount/amount_ma20', 'changepercent'])
 
     # 定义模型和超参数
     model = DQN("MlpPolicy", env, learning_rate=1e-5, buffer_size=100000, batch_size=128, verbose=0)

@@ -33,7 +33,7 @@ class TradingEnv(gym.Env):
         low = np.array([self.df[key].min() for key in keys]).min()
         high = np.array([self.df[key].max() for key in keys]).max()
 
-        self.observation_space = gym.spaces.Box(low=int(low), high=int(high), shape=(len(keys) + 4,)) 
+        self.observation_space = gym.spaces.Box(low=int(low), high=int(high), shape=(len(keys) + 7,)) 
 
 
     def reset(self):
@@ -45,7 +45,7 @@ class TradingEnv(gym.Env):
         self.previous_asset_value = self.initial_asset
         self.action = 2
         self.last_trade_time = self.df.iloc[self.current_step]['timestamp']
-        return self._get_observation(self.action)
+        return self._get_observation(self.action, True, True, 0)
 
     def step(self, action):
    
@@ -53,50 +53,46 @@ class TradingEnv(gym.Env):
         assert self.action_space.contains(action), "Invalid action"
 
         price = self.df.iloc[self.current_step]['close'] # 获取当前价格
-        can_trade = self.df.iloc[self.current_step]['timestamp'] - self.last_trade_time > 900
+        dis_time = self.df.iloc[self.current_step]['timestamp'] - self.last_trade_time
+        can_trade = dis_time > 900
         # can_trade = True
         can_buy = self.balance >= price * self.trade_size
         can_sell = self.position >= self.trade_size
         action_text = 'hold'
-        if action == 0 and can_trade: # 买入
-            if can_buy: # 判断是否有足够的资金（USDT）
+        if action == 0: # 买入
+            if can_buy and can_trade: # 判断是否有足够的资金（USDT）
                 cost = price * self.trade_size * (1 + self.fee_rate) # 计算成本（USDT）
                 self.balance -= cost # 更新资金（USDT）
                 self.position += self.trade_size # 更新持仓（ETH）
                 self.last_trade_time = self.df.iloc[self.current_step]['timestamp']
                 action_text = 'buy'
-        elif action == 1 and can_trade: # 卖出
-            if can_sell: # 判断是否有足够的持仓（ETH）
+        elif action == 1: # 卖出
+            if can_sell and can_trade: # 判断是否有足够的持仓（ETH）
                 self.balance += price * self.trade_size * (1 - self.fee_rate) # 计算收入（USDT）
                 self.position -= self.trade_size# 更新持仓（ETH）
                 self.last_trade_time = self.df.iloc[self.current_step]['timestamp']
                 action_text = 'sell'
         self.current_step += 1
         done = self.current_step >= self.max_step
-        observation = self._get_observation(action)# 获取观察
-        reward = self._get_reward(action)# 获取奖励
 
-        # 如果action == 0 can_buy == False，reward = 0, 如果action == 1 can_sell == False，reward = 0
-        if action == 0 and not can_buy:
-            reward = 0
-            action = 2
-        elif action == 1 and not can_sell:
-            reward = 0
-            action = 2
-        else:
-            reward = self._get_reward(action)# 获取奖励
-        # print(self.df.iloc[self.current_step]['time'], action, reward)
+        observation = self._get_observation(action, can_buy, can_sell, dis_time)# 获取观察
+        reward = self._get_reward(action, action_text) # 获取奖励   
+        # if reward > 0 and action == 2:
+        #     print(reward)
+
+        # print(reward)
         # self.render(action, can_trade)
         return observation, reward, done, {"action": action_text, "time": self.df.iloc[self.current_step]['time'], "price": price}
 
     def get_profit(self):
         current_asset = self.balance + self.position * self.df.iloc[self.current_step]['close']
         return (current_asset - self.initial_asset) / self.initial_asset
-    def _get_reward(self, action):
+    def _get_reward(self, action, action_text):
         """
         获取奖励值方法，根据当前状态和动作计算奖励值。
         """
-        if action == 2:
+        # action是交易，但其他条件不满足交易，奖励值为0       
+        if action != 2 and action_text == 'hold':
             return 0
         # 当前持有的资产价值
         current_asset = self.balance + self.position * self.df.iloc[self.current_step]['close']
@@ -109,9 +105,9 @@ class TradingEnv(gym.Env):
 
         return reward
 
-    def _get_observation(self, action):
+    def _get_observation(self, action, can_buy, can_sell, dis_time):
         ##  添加一个self.get_profit(), 作为观察值
-        obs = np.array([self.df.iloc[self.current_step][key] for key in self.keys] + [action, self.get_profit(), self.balance, self.position])
+        obs = np.array([self.df.iloc[self.current_step][key] for key in self.keys] + [action, can_buy, can_sell, dis_time, self.get_profit(), self.balance, self.position])
         # obs = np.array([self.df.iloc[self.current_step][key] for key in self.keys])
         return obs
 
@@ -130,3 +126,5 @@ class TradingEnv(gym.Env):
             print(f'step: {self.current_step} {price} {time} - 买入 - 收益率: {round(self.get_profit(), 4) * 100}%')
         elif action == 1:
             print(f'step: {self.current_step} {price} {time} - 卖出 - 收益率: {round(self.get_profit(), 4) * 100}%')
+        elif action == 2:
+            print(f'step: {self.current_step} {price} {time} - 持有 - 收益率: {round(self.get_profit(), 4) * 100}%')
