@@ -11,8 +11,9 @@ from trader.util import get_interval
 
 # from stable_baselines import ACER
 # from collections import deque
+import tensorflow as tf
 
-
+print(tf.test.is_gpu_available())
 
 def get_history(symbol: str, start_time: str=None, end_time: str=None):
     """Fetches trade history for a given symbol and time range.
@@ -53,7 +54,7 @@ def download():
 # download()
 
 def analyze_data():
-
+    
     # 读取JSON文件
     with open('./data/ETHUSDT-2023-01-08.json', 'r') as f:
         data = json.load(f)
@@ -95,7 +96,7 @@ def analyze_data():
   
    
     df2['sclose'] = df['close']
-    df2['ma30'] = df['ma30']
+    # df2['ma30'] = df['ma30']
     df2['ma60'] = df['ma60']
     # 标准化处理
     scaler.fit(df2)
@@ -112,10 +113,10 @@ def analyze_data():
     trades = []
 
     # 创建TradingEnv实例
-    env = TradingEnv(df = df2,  keys=['sclose', 'ma30', 'ma60', 'close/ma60', 'buy/amount', 'sell/amount', 'amount/amount_ma20', 'changepercent'])
+    env = TradingEnv(df = df2,  keys=['sclose', 'ma60', 'close/ma60', 'buy/amount', 'sell/amount', 'amount/amount_ma20', 'changepercent'])
 
     # 定义模型和超参数
-    model = DQN("MlpPolicy", env, learning_rate=1e-5, buffer_size=100000, batch_size=128, verbose=0)
+    model = DQN("MlpPolicy", env, learning_rate=1e-5, buffer_size=100000, batch_size=128, verbose=0, device='cuda')
     # env.load_model('./modes/mode.zip')
     # model = ACER("MlpPolicy", env, verbose=1, tensorboard_log="./logs/")
     # df数据长度
