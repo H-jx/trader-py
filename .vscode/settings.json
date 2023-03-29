@@ -1,5 +1,6 @@
 {
     "code-runner.executorMapByFileExtension": {
         "python": "python3",
-    }
+    },
+    "python.analysis.typeCheckingMode": "basic"
 }

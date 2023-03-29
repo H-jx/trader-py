@@ -1,7 +1,7 @@
-from typing import List
+from typing import Tuple
 from datetime import datetime, timedelta
 
-def get_interval(hours = 72)  -> List[str] :
+def get_interval(hours = 72)  -> Tuple[str, str] :
     """
     Get the start and end datetime for a given number of hours back from now.
     

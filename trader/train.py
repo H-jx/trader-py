@@ -4,7 +4,7 @@ import logging
 import pandas as pd
 import requests
 from sklearn.preprocessing import StandardScaler
-from stable_baselines3 import DQN
+from stable_baselines3.dqn.dqn import DQN
 
 from trader.TradingEnv import TradingEnv
 from trader.util import get_interval
@@ -13,9 +13,9 @@ from trader.util import get_interval
 # from collections import deque
 import tensorflow as tf
 
-print(tf.test.is_gpu_available())
+print(tf.test.is_built_with_cuda())
 
-def get_history(symbol: str, start_time: str=None, end_time: str=None):
+def get_history(symbol: str, start_time: str='', end_time: str=''):
     """Fetches trade history for a given symbol and time range.
 
     Args:

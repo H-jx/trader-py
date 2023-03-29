@@ -1,0 +1,19 @@
+[[source]]
+url = "https://mirrors.aliyun.com/pypi/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+tensorflow = "==2.4.0"
+tensorflow-gpu = "==2.4.0"
+gym = "*"
+flask = {version = "*", index = "pypi"}
+flask-socketio = {version = "*", index = "pypi"}
+pandas = "*"
+sklearn = "*"
+stable-baselines3 = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.6"
