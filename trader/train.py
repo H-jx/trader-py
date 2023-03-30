@@ -12,8 +12,11 @@ from trader.util import get_interval
 # from stable_baselines import ACER
 # from collections import deque
 import tensorflow as tf
+import torch
 
-print(tf.test.is_built_with_cuda())
+# 用此方法检查，有效。
+torch.zeros(1).cuda()
+# print(tf.test.is_built_with_cuda())
 
 def get_history(symbol: str, start_time: str='', end_time: str=''):
     """Fetches trade history for a given symbol and time range.

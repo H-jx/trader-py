@@ -12,6 +12,9 @@ flask-socketio = {version = "*", index = "pypi"}
 pandas = "*"
 sklearn = "*"
 stable-baselines3 = "*"
+torch = "==1.8.1"
+torchvision = "==0.9.1"
+torchaudio = "==0.8.1"
 
 [dev-packages]
 
