@@ -10,7 +10,7 @@ pip3 install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple
 
 pip3 install torch==1.8.1+cu111 torchvision==0.9.1+cu111 torchaudio==0.8.1 -f https://download.pytorch.org/whl/torch_stable.html
 pip3 install tensorflow_gpu==2.4.0 tensorflow==2.4.0  -i https://mirrors.aliyun.com/pypi/simple
-pip3 install Flask==2.0.2 Flask-SocketIO==5.1.1 stable_baselines3 gym pandas requests -i https://mirrors.aliyun.com/pypi/simple
+pip3 install Flask==2.0.2 Flask-SocketIO==5.1.1 stable_baselines3 gym pandas requests backtrader -i https://mirrors.aliyun.com/pypi/simple
  
 
 
