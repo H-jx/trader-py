@@ -1,6 +1,6 @@
 import json
 import logging
-
+import csv
 import pandas as pd
 import requests
 from sklearn.preprocessing import StandardScaler
@@ -44,17 +44,23 @@ def get_history(symbol: str, start_time: str='', end_time: str=''):
         return data['data']
     except Exception as e:
         logging.error(f"{url}: {e}")
+        return ''
 
 def download():
     start_time, end_time = ["2023/01/08 18:26:44", "2023/03/15 18:26:44"]
     symbol = "ETHUSDT"
     print(start_time, end_time)
-    arr = get_history(symbol, start_time, end_time)
+    csvStr = get_history(symbol, start_time, end_time)
     # 将数据写入JSON文件
-    with open(f"data/{symbol}-{start_time[0:10].replace('/', '-')}.json", 'w') as f:
-        json.dump(arr, f)
+    # with open(f"data/{symbol}-{start_time[0:10].replace('/', '-')}.csv", 'w') as f:
+    #     json.dump(csvStr, f)
 
-# download()
+    with open(f"data/{symbol}-{start_time[0:10].replace('/', '-')}.csv", 'w', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file)
+        for row in csvStr.split('\n'):
+            writer.writerow(row.split(','))
+
+download()
 
 def analyze_data():
     
