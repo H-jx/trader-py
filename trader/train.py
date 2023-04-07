@@ -57,6 +57,8 @@ def download():
     start_time = int(datetime.datetime.strptime(start_time, "%Y/%m/%d %H:%M:%S").timestamp() * 1000)
     end_time = int(datetime.datetime.strptime(end_time, "%Y/%m/%d %H:%M:%S").timestamp() * 1000)
     csvStr = get_history(symbol, start_time, end_time)
+    # 将双引号替换为空
+    csvStr = csvStr.replace('\\"', '')
     # 将数据写入JSON文件
     # with open(f"data/{symbol}-{start_time[0:10].replace('/', '-')}.csv", 'w') as f:
     #     json.dump(csvStr, f)
@@ -66,44 +68,57 @@ def download():
         for row in csvStr.split('\n'):
             writer.writerow(row.split(','))
 
-download()
+# download()
 
 def analyze_data():
     
     # df = pd.read_json('./data/ETHUSDT.json')
     # df.to_csv('./data/ETHUSDT.csv', index=False)
-    # 读取JSON文件
-    with open('./data/ETHUSDT-2023-01-08.json', 'r') as f:
-        data = json.load(f)
     # 转换为DataFrame
-    df = pd.DataFrame(data)
+    df = pd.read_csv('./data/ETHUSDT-2020.csv')
     # 计算5日均线和10日均线
-
-    df['close'] = pd.to_numeric(df['usdtPrice'])
+    df.drop('id', axis=1, inplace=True)
     df['ma5'] = df['close'].rolling(window=5).mean()
     df['ma10'] = df['close'].rolling(window=10).mean()
     df['ma30'] = df['close'].rolling(window=30).mean()
     df['ma60'] = df['close'].rolling(window=60).mean()
-    df['close/ma60'] = (df['close'] - df['ma60']) / df['ma60']
-    df['buy'] = pd.to_numeric(df['buy'], errors='coerce')
-    df['sell'] = pd.to_numeric(df['sell'], errors='coerce')
-    df['amount'] = df['buy'] + df['sell']
-    df['buy/amount'] = df['buy'] / df['amount']
-    df['sell/amount'] = df['sell'] / df['amount']
-    df['amount_ma20'] = df['amount'].rolling(window=20).mean()
-    df['amount/amount_ma20'] = df['amount'] / df['amount_ma20']
-    
+    df['close_ma60'] = (df['close'] - df['ma60']) / df['ma60']
+    df['buy_rate'] = df['buy'] / df['volume']
+    df['sell_rate'] = df['sell'] / df['volume']
+    df['volume_ma20'] = df['volume'].rolling(window=20).mean()
+    df['volume_volume_ma20'] = df['volume'] / df['volume_ma20']
+    filter = df.loc[df['close_ma60'] == 0.033294, 'close_ma60']
+    print(filter)
     # df['amount/amount_ma20'] = df['amount/amount_ma20'].apply(lambda x: 1 if x > 1 else (-1 if x < -1 else x))
-    # time的格式如下：2023-03-14T15:40:00.000Z， 我想转为时间戳
-    df['timestamp'] = pd.to_datetime(df['time'], errors='coerce').apply(lambda x: x.timestamp())
+    # time的格式如下：2020-08-01T16:00:00.000Z,， 我想转为时间戳
+    df['time'] = pd.to_datetime(df['time'])
+    df['timestamp'] = df['time'].astype(int)
     df['changepercent'] = (df['close'] - df['close'].shift(1)) / df['close'].shift(1)
     df = df.dropna().reset_index(drop=True)
+
+    close_ma60_filtered = df.loc[df['label'] == -1, 'close_ma60']
+    close_ma60_mean = close_ma60_filtered.mean()
+    close_ma60_range = (close_ma60_filtered.min(), close_ma60_filtered.max())
+    volume_volume_ma20_filtered = df.loc[df['label'] == -1, 'volume_volume_ma20']
+    volume_volume_ma20_mean = volume_volume_ma20_filtered.mean()
+    volume_volume_ma20_range = (volume_volume_ma20_filtered.min(), volume_volume_ma20_filtered.max())
     # df['label'] = 0
     # print(df['timestamp'].head(5))
     # df.loc[(df['changepercent'] > 0.1) & (df['amount_ma20'] > 1) & df['close/ma60'] > 0, 'label'] = 1
     # df.loc[(df['changepercent'] < -0.1) & (df['amount_ma20'] > 1) & df['close/ma60'] < 0, 'label'] = -1
+    print('sell', close_ma60_mean, close_ma60_range, volume_volume_ma20_mean, volume_volume_ma20_range)
+    print(close_ma60_filtered.head(20))
+    print(volume_volume_ma20_filtered.head(20))
 
-    print(df.head(5))
+    close_ma60_filtered = df.loc[df['label'] == 1, 'close_ma60']
+    close_ma60_mean = close_ma60_filtered.mean()
+    close_ma60_range = (close_ma60_filtered.min(), close_ma60_filtered.max())
+    volume_volume_ma20_filtered = df.loc[df['label'] == 1, 'volume_volume_ma20']
+    volume_volume_ma20_mean = volume_volume_ma20_filtered.mean()
+    volume_volume_ma20_range = (volume_volume_ma20_filtered.min(), volume_volume_ma20_filtered.max())
+    print('buy', close_ma60_mean, close_ma60_range, volume_volume_ma20_mean, volume_volume_ma20_range)
+    print(close_ma60_filtered.head(20))
+    print(volume_volume_ma20_filtered.head(20))
     return
 
     scaler = StandardScaler()
