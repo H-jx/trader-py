@@ -1,6 +1,8 @@
+# -*- coding:utf-8 -*-  
 import json
 import logging
 import csv
+import datetime
 import pandas as pd
 import requests
 from sklearn.preprocessing import StandardScaler
@@ -15,10 +17,10 @@ import tensorflow as tf
 import torch
 
 # 用此方法检查，有效。
-torch.zeros(1).cuda()
+# torch.zeros(1).cuda()
 # print(tf.test.is_built_with_cuda())
 
-def get_history(symbol: str, start_time: str='', end_time: str=''):
+def get_history(symbol: str, start_time: int, end_time: int):
     """Fetches trade history for a given symbol and time range.
 
     Args:
@@ -32,7 +34,7 @@ def get_history(symbol: str, start_time: str='', end_time: str=''):
         HTTPError: If the API returns an error response.
     """                     
     # 读取接口数据
-    url = 'http://trader.8and1.cn/api/trade-history'
+    url = 'http://trader.8and1.cn/api/kline-history'
 
     params = {'start': start_time, 'end': end_time, 'symbol': symbol}
     try:
@@ -47,15 +49,19 @@ def get_history(symbol: str, start_time: str='', end_time: str=''):
         return ''
 
 def download():
-    start_time, end_time = ["2023/01/08 18:26:44", "2023/03/15 18:26:44"]
+    start_time, end_time = ["2018/8/1 00:00:00", "2023/04/4 00:00:00"]
     symbol = "ETHUSDT"
     print(start_time, end_time)
+
+    # start_time, end_time使用时间戳
+    start_time = int(datetime.datetime.strptime(start_time, "%Y/%m/%d %H:%M:%S").timestamp() * 1000)
+    end_time = int(datetime.datetime.strptime(end_time, "%Y/%m/%d %H:%M:%S").timestamp() * 1000)
     csvStr = get_history(symbol, start_time, end_time)
     # 将数据写入JSON文件
     # with open(f"data/{symbol}-{start_time[0:10].replace('/', '-')}.csv", 'w') as f:
     #     json.dump(csvStr, f)
 
-    with open(f"data/{symbol}-{start_time[0:10].replace('/', '-')}.csv", 'w', newline='', encoding='utf-8') as file:
+    with open(f"data/{symbol}.csv", 'w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         for row in csvStr.split('\n'):
             writer.writerow(row.split(','))
@@ -64,6 +70,8 @@ download()
 
 def analyze_data():
     
+    # df = pd.read_json('./data/ETHUSDT.json')
+    # df.to_csv('./data/ETHUSDT.csv', index=False)
     # 读取JSON文件
     with open('./data/ETHUSDT-2023-01-08.json', 'r') as f:
         data = json.load(f)
@@ -96,13 +104,13 @@ def analyze_data():
     # df.loc[(df['changepercent'] < -0.1) & (df['amount_ma20'] > 1) & df['close/ma60'] < 0, 'label'] = -1
 
     print(df.head(5))
-
+    return
 
     scaler = StandardScaler()
 
     df2 = pd.DataFrame()
     
-  
+    
    
     df2['sclose'] = df['close']
     # df2['ma30'] = df['ma30']
