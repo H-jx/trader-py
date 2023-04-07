@@ -49,7 +49,7 @@ def get_history(symbol: str, start_time: int, end_time: int):
         return ''
 
 def download():
-    start_time, end_time = ["2018/8/1 00:00:00", "2023/04/4 00:00:00"]
+    start_time, end_time = ["2020/8/1 00:00:00", "2023/04/4 00:00:00"]
     symbol = "ETHUSDT"
     print(start_time, end_time)
 
@@ -61,7 +61,7 @@ def download():
     # with open(f"data/{symbol}-{start_time[0:10].replace('/', '-')}.csv", 'w') as f:
     #     json.dump(csvStr, f)
 
-    with open(f"data/{symbol}.csv", 'w', newline='', encoding='utf-8') as file:
+    with open(f"data/{symbol}-2020.csv", 'w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         for row in csvStr.split('\n'):
             writer.writerow(row.split(','))
