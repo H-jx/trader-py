@@ -3,6 +3,7 @@ import pickle
 from typing import List
 
 import gym
+from gym import spaces
 import numpy as np
 import pandas as pd
 
@@ -29,11 +30,11 @@ class TradingEnv(gym.Env):
         self.max_step = len(self.df) - 1
 
         # 定义动作空间和观察空间
-        self.action_space = gym.spaces.Discrete(3) # 三种动作：买入、卖出、持有
-        low = np.array([self.df[key].min() for key in keys]).min()
-        high = np.array([self.df[key].max() for key in keys]).max()
+        self.action_space = spaces.Discrete(3) # 三种动作：买入、卖出、持有
+        # low = np.array([self.df[key].min() for key in keys]).min()
+        # high = np.array([self.df[key].max() for key in keys]).max()
 
-        self.observation_space = gym.spaces.Box(low=int(low), high=int(high), shape=(len(keys) + 7,)) 
+        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(len(keys) + 7,)) 
 
 
     def reset(self):

@@ -71,55 +71,49 @@ def download():
 # download()
 
 def analyze_data():
-    
-    # df = pd.read_json('./data/ETHUSDT.json')
-    # df.to_csv('./data/ETHUSDT.csv', index=False)
+
     # 转换为DataFrame
     df = pd.read_csv('./data/ETHUSDT-2020.csv')
+    # df = df[df['symbol'] == 'ETHUSDT']
+
     # 计算5日均线和10日均线
-    df.drop('id', axis=1, inplace=True)
-    df['ma5'] = df['close'].rolling(window=5).mean()
     df['ma10'] = df['close'].rolling(window=10).mean()
     df['ma30'] = df['close'].rolling(window=30).mean()
     df['ma60'] = df['close'].rolling(window=60).mean()
-    df['close_ma60'] = (df['close'] - df['ma60']) / df['ma60']
+    df['close_ma60_rate'] = (df['close'] - df['ma60']) / df['ma60']
     df['buy_rate'] = df['buy'] / df['volume']
     df['sell_rate'] = df['sell'] / df['volume']
     df['volume_ma20'] = df['volume'].rolling(window=20).mean()
     df['volume_volume_ma20'] = df['volume'] / df['volume_ma20']
-    filter = df.loc[df['close_ma60'] == 0.033294, 'close_ma60']
-    print(filter)
-    # df['amount/amount_ma20'] = df['amount/amount_ma20'].apply(lambda x: 1 if x > 1 else (-1 if x < -1 else x))
+
     # time的格式如下：2020-08-01T16:00:00.000Z,， 我想转为时间戳
     df['time'] = pd.to_datetime(df['time'])
-    df['timestamp'] = df['time'].astype(int)
     df['changepercent'] = (df['close'] - df['close'].shift(1)) / df['close'].shift(1)
-    df = df.dropna().reset_index(drop=True)
 
-    close_ma60_filtered = df.loc[df['label'] == -1, 'close_ma60']
-    close_ma60_mean = close_ma60_filtered.mean()
-    close_ma60_range = (close_ma60_filtered.min(), close_ma60_filtered.max())
-    volume_volume_ma20_filtered = df.loc[df['label'] == -1, 'volume_volume_ma20']
-    volume_volume_ma20_mean = volume_volume_ma20_filtered.mean()
-    volume_volume_ma20_range = (volume_volume_ma20_filtered.min(), volume_volume_ma20_filtered.max())
-    # df['label'] = 0
-    # print(df['timestamp'].head(5))
-    # df.loc[(df['changepercent'] > 0.1) & (df['amount_ma20'] > 1) & df['close/ma60'] > 0, 'label'] = 1
-    # df.loc[(df['changepercent'] < -0.1) & (df['amount_ma20'] > 1) & df['close/ma60'] < 0, 'label'] = -1
-    print('sell', close_ma60_mean, close_ma60_range, volume_volume_ma20_mean, volume_volume_ma20_range)
-    print(close_ma60_filtered.head(20))
-    print(volume_volume_ma20_filtered.head(20))
 
-    close_ma60_filtered = df.loc[df['label'] == 1, 'close_ma60']
-    close_ma60_mean = close_ma60_filtered.mean()
-    close_ma60_range = (close_ma60_filtered.min(), close_ma60_filtered.max())
-    volume_volume_ma20_filtered = df.loc[df['label'] == 1, 'volume_volume_ma20']
-    volume_volume_ma20_mean = volume_volume_ma20_filtered.mean()
-    volume_volume_ma20_range = (volume_volume_ma20_filtered.min(), volume_volume_ma20_filtered.max())
-    print('buy', close_ma60_mean, close_ma60_range, volume_volume_ma20_mean, volume_volume_ma20_range)
-    print(close_ma60_filtered.head(20))
-    print(volume_volume_ma20_filtered.head(20))
-    return
+    # buy_filtered = df.loc[df['label'] == 1]
+
+    # close_ma60_range = (buy_filtered['close_ma60'].min(), buy_filtered['close_ma60'].max())
+    # buy_rate_range = (buy_filtered['sell_rate'].min(), buy_filtered['sell_rate'].max())
+    # volume_volume_ma20_range = (buy_filtered['volume_volume_ma20'].min(), buy_filtered['volume_volume_ma20'].max())
+
+    # print('buy')
+    # print('close_ma60_range: ', close_ma60_range)
+    # print('sell_rate_range: ', buy_rate_range)
+    # print('volume_volume_ma20_range: ', volume_volume_ma20_range)
+    # print(buy_filtered.loc[buy_filtered['close_ma60'] > 0.01])
+
+    # sell_filtered = df.loc[df['label'] == -1]
+    # close_ma60_range = (sell_filtered['close_ma60'].min(), sell_filtered['close_ma60'].max())
+    # sell_rate_range = (sell_filtered['buy_rate'].min(), sell_filtered['buy_rate'].max())
+    # volume_volume_ma20_range = (sell_filtered['volume_volume_ma20'].min(), sell_filtered['volume_volume_ma20'].max())
+
+    # print('-----')
+    # print('sell')
+    # print('close_ma60_range: ', close_ma60_range)
+    # print('sell_rate_range: ', sell_rate_range)
+    # print('volume_volume_ma20_range: ', volume_volume_ma20_range)
+    # print(sell_filtered.head(20))
 
     scaler = StandardScaler()
 
@@ -128,24 +122,24 @@ def analyze_data():
     
    
     df2['sclose'] = df['close']
-    # df2['ma30'] = df['ma30']
+    df2['ma30'] = df['ma30']
     df2['ma60'] = df['ma60']
+    df2['close_ma60_rate'] = df['close_ma60_rate']
+    df2['buy_rate'] = df['buy_rate']
+    df2['sell_rate'] = df['sell_rate']
+    df2['volume_volume_ma20'] = df['volume_volume_ma20']
+    df2['changepercent'] = df['changepercent']
     # 标准化处理
     scaler.fit(df2)
     df2 = pd.DataFrame(scaler.transform(df2), columns=df2.columns)
-    df2['amount/amount_ma20'] = df['amount/amount_ma20']
-    df2['close/ma60'] = df['close/ma60']
     df2['time'] = df['time']
     df2['timestamp'] = df['timestamp']
     df2['close'] = df['close']
-    df2['buy/amount'] = df['buy/amount']
-    df2['sell/amount'] = df['sell/amount']
-    df2['changepercent'] = df['changepercent']
     print(df2.head(20))
     trades = []
 
     # 创建TradingEnv实例
-    env = TradingEnv(df = df2,  keys=['sclose', 'ma60', 'close/ma60', 'buy/amount', 'sell/amount', 'amount/amount_ma20', 'changepercent'])
+    env = TradingEnv(df = df2,  keys=['sclose', 'ma30', 'ma60', 'close_ma60_rate', 'buy_rate', 'sell_rate', 'volume_volume_ma20', 'changepercent', 'timestamp'])
 
     # 定义模型和超参数
     model = DQN("MlpPolicy", env, learning_rate=1e-5, buffer_size=100000, batch_size=128, verbose=0, device='cuda')
