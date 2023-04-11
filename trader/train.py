@@ -10,7 +10,7 @@ from stable_baselines3.dqn.dqn import DQN
 
 from trader.TradingEnv import TradingEnv
 from trader.util import get_interval
-
+from trader.Backtest import Backtest
 # from stable_baselines import ACER
 # from collections import deque
 import tensorflow as tf
@@ -73,73 +73,31 @@ def download():
 def analyze_data():
 
     # 转换为DataFrame
-    df = pd.read_csv('./data/ETHUSDT-2020.csv')
-    # df = df[df['symbol'] == 'ETHUSDT']
+    df = pd.read_csv('./data/sample-data.csv')
 
-    # 计算5日均线和10日均线
-    df['ma10'] = df['close'].rolling(window=10).mean()
-    df['ma30'] = df['close'].rolling(window=30).mean()
-    df['ma60'] = df['close'].rolling(window=60).mean()
-    df['close_ma60_rate'] = (df['close'] - df['ma60']) / df['ma60']
-    df['buy_rate'] = df['buy'] / df['volume']
-    df['sell_rate'] = df['sell'] / df['volume']
-    df['volume_ma20'] = df['volume'].rolling(window=20).mean()
-    df['volume_volume_ma20'] = df['volume'] / df['volume_ma20']
-
-    # time的格式如下：2020-08-01T16:00:00.000Z,， 我想转为时间戳
-    df['time'] = pd.to_datetime(df['time'])
-    df['changepercent'] = (df['close'] - df['close'].shift(1)) / df['close'].shift(1)
-
-
-    # buy_filtered = df.loc[df['label'] == 1]
-
-    # close_ma60_range = (buy_filtered['close_ma60'].min(), buy_filtered['close_ma60'].max())
-    # buy_rate_range = (buy_filtered['sell_rate'].min(), buy_filtered['sell_rate'].max())
-    # volume_volume_ma20_range = (buy_filtered['volume_volume_ma20'].min(), buy_filtered['volume_volume_ma20'].max())
-
-    # print('buy')
-    # print('close_ma60_range: ', close_ma60_range)
-    # print('sell_rate_range: ', buy_rate_range)
-    # print('volume_volume_ma20_range: ', volume_volume_ma20_range)
-    # print(buy_filtered.loc[buy_filtered['close_ma60'] > 0.01])
-
-    # sell_filtered = df.loc[df['label'] == -1]
-    # close_ma60_range = (sell_filtered['close_ma60'].min(), sell_filtered['close_ma60'].max())
-    # sell_rate_range = (sell_filtered['buy_rate'].min(), sell_filtered['buy_rate'].max())
-    # volume_volume_ma20_range = (sell_filtered['volume_volume_ma20'].min(), sell_filtered['volume_volume_ma20'].max())
-
-    # print('-----')
-    # print('sell')
-    # print('close_ma60_range: ', close_ma60_range)
-    # print('sell_rate_range: ', sell_rate_range)
-    # print('volume_volume_ma20_range: ', volume_volume_ma20_range)
-    # print(sell_filtered.head(20))
-
-    scaler = StandardScaler()
-
-    df2 = pd.DataFrame()
+    keys = [
+        'timestamp',
+        'symbol',
+        'close',
+        'close_less_than_ma10',
+        'ma10_less_than_ma30',
+        'ma30_less_than_ma60',
+        'sell_rate',
+        'low_boll_rate',
+        'high_boll_rate',
+        'boll_range_rate',
+        'changepercent',
+        'upper_shadow_rate',
+        'lower_shadow_rate',
+        'close_ma60_rate',
+        'volume_ma20_rate',
+        'long_rsi'
+    ]
     
-    
-   
-    df2['sclose'] = df['close']
-    df2['ma30'] = df['ma30']
-    df2['ma60'] = df['ma60']
-    df2['close_ma60_rate'] = df['close_ma60_rate']
-    df2['buy_rate'] = df['buy_rate']
-    df2['sell_rate'] = df['sell_rate']
-    df2['volume_volume_ma20'] = df['volume_volume_ma20']
-    df2['changepercent'] = df['changepercent']
-    # 标准化处理
-    scaler.fit(df2)
-    df2 = pd.DataFrame(scaler.transform(df2), columns=df2.columns)
-    df2['time'] = df['time']
-    df2['timestamp'] = df['timestamp']
-    df2['close'] = df['close']
-    print(df2.head(20))
-    trades = []
-
+    print(df.head(20))
+    backtest = Backtest(trade_volume = 0.1, balance= 1400, volume = 0.1)
     # 创建TradingEnv实例
-    env = TradingEnv(df = df2,  keys=['sclose', 'ma30', 'ma60', 'close_ma60_rate', 'buy_rate', 'sell_rate', 'volume_volume_ma20', 'changepercent', 'timestamp'])
+    env = TradingEnv(df = df, keys=keys, backtest=backtest)
 
     # 定义模型和超参数
     model = DQN("MlpPolicy", env, learning_rate=1e-5, buffer_size=100000, batch_size=128, verbose=0, device='cuda')
@@ -152,7 +110,7 @@ def analyze_data():
 
     # 回测
     obs = env.reset()
-
+    trades = []
     for i in range(len(df) - 1):
         action, _ = model.predict(obs)
         obs, reward, done, info = env.step(action)
