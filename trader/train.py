@@ -74,11 +74,10 @@ def analyze_data():
 
     # 转换为DataFrame
     df = pd.read_csv('./data/sample-data.csv')
-
+    df = df.dropna()  # 删除包含 NaN 的行
+    df['sclose'] = df['close']
     keys = [
-        'timestamp',
-        'symbol',
-        'close',
+        'sclose',
         'close_less_than_ma10',
         'ma10_less_than_ma30',
         'ma30_less_than_ma60',
@@ -93,37 +92,63 @@ def analyze_data():
         'volume_ma20_rate',
         'long_rsi'
     ]
+    df[keys + ['close']] = df[keys + ['close']].astype(float)
+    df['time'] = pd.to_datetime(df['timestamp'], unit='ms')
+    normalize(df, [
+        'sclose'
+    ])
+   
     
     print(df.head(20))
-    backtest = Backtest(trade_volume = 0.1, balance= 1400, volume = 0.1)
+    backtest = Backtest(trade_volume = 0.4, balance= 1600, position = 0.1)
     # 创建TradingEnv实例
     env = TradingEnv(df = df, keys=keys, backtest=backtest)
 
     # 定义模型和超参数
-    model = DQN("MlpPolicy", env, learning_rate=1e-5, buffer_size=100000, batch_size=128, verbose=0, device='cuda')
+    model = DQN("MlpPolicy", env, learning_rate=1e-5, buffer_size=100000, batch_size=64, verbose=0, device='cuda')
     # env.load_model('./modes/mode.zip')
     # model = ACER("MlpPolicy", env, verbose=1, tensorboard_log="./logs/")
     # df数据长度
 
     # 开始训练数据
-    model.learn(total_timesteps=16165 * 50, tb_log_name='run')
+    model.learn(total_timesteps=len(df) * 20, tb_log_name='run')
 
     # 回测
     obs = env.reset()
-    trades = []
+
     for i in range(len(df) - 1):
         action, _ = model.predict(obs)
         obs, reward, done, info = env.step(action)
         env.render(action)
-        trades.append(info)
         if done:
             break
-    if env.get_profit() > 0:
-        model.save('./modes/mode2')
 
-    print('Profit: %.2f%%' % (env.get_profit() * 100))
+    if env.get_profit() > 0:
+        model.save('./modes/DQN')
+
+    print('Profit: %.2f%%' % (env.get_profit()))
 
     with open('./data/predict.json', 'w') as f:
-        json.dump(trades, f)
+        json.dump(env.backtest.trades, f)
 
  
+# 标准化函数
+def normalize(df, cols):
+    """
+    对 DataFrame 中的指定列进行标准化
+    
+    Args:
+        df (pandas.DataFrame): 要标准化的 DataFrame
+        cols (List[str]): 需要标准化的列名列表
+        
+    Returns:
+        pandas.DataFrame: 标准化后的 DataFrame
+    """
+    # 按列计算平均值和标准差
+    means = df[cols].mean()
+    stds = df[cols].std()
+
+    # 标准化
+    df[cols] = (df[cols] - means) / stds
+
+    return df

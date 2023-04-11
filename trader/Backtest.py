@@ -1,5 +1,6 @@
 from typing import List, Dict
 import datetime
+import pandas as pd
 from enum import Enum
 
 class Signal(Enum):
@@ -7,10 +8,13 @@ class Signal(Enum):
     SELL = 'SELL'
 
 class Trade:
-    def __init__(self, close: float, volume: float, action: str, timestamp: int = 0, time: str = '', profit: float = 0.0):
-        self.timestamp = timestamp
+    def __init__(self, close: float, volume: float, action: str, time: pd.Timestamp, profit: float = 0.0):
         self.time = time
+        self.timestamp = int(time.timestamp() * 1000)
         self.close = close
+        self.high = close
+        self.low = close
+        self.open = close
         self.volume = volume
         self.action = action
         self.profit = profit
@@ -23,19 +27,12 @@ class Backtest:
         }
         self.trade_volume = trade_volume
         self.trades: List[Trade] = []
-        self.current_data = {
-            'balance': balance,
-            'position': position,
-            'last_price': 0,
-            'max_drawdown': 0,
-            'buy_count': 0,
-            'sell_count': 0,
-        }
         self.init_data = {
             'balance': balance,
             'position': position,
             'start_price': 0,
         }
+        self.reset()
     def reset(self) -> None:
         self.current_data = {
             'balance': self.init_data['balance'],
@@ -44,10 +41,12 @@ class Backtest:
             'max_drawdown': 0,
             'buy_count': 0,
             'sell_count': 0,
+            'profit': 0,
+            'profit_rate': 0,
         }
         self.trades = []
 
-    def mock_trade(self, action: str, close: float, trade_volume: float, timestamp: int) -> None:
+    def mock_trade(self, action: str, close: float, trade_volume: float, time: pd.Timestamp) -> None:
         if self.init_data['start_price'] == 0:
             self.init_data['start_price'] = close
 
@@ -69,8 +68,9 @@ class Backtest:
                 self.current_data['sell_count'] += 1
 
             self.update_profit()
+            print(time)
             self.trades.append(Trade(
-                time=datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S'), 
+                time=time, 
                 close=price, 
                 volume=trade_volume, 
                 action=action, 
@@ -82,21 +82,19 @@ class Backtest:
         current_asset = self.current_data['balance'] + self.current_data['position'] * self.current_data['last_price']
         initial_asset = self.init_data['balance'] + self.init_data['position'] * self.init_data['start_price']
 
-        profit = round((current_asset - initial_asset), 4)
-        profit_rate = round((profit / initial_asset) * 100, 4)
+        self.current_data['profit'] = round((current_asset - initial_asset), 4)
+        self.current_data['profit_rate'] = round((self.current_data['profit'] / initial_asset) * 100, 4)
 
-        if profit_rate < self.current_data['max_drawdown']:
-            self.current_data['max_drawdown'] = profit_rate
+        if self.current_data['profit_rate'] < self.current_data['max_drawdown']:
+            self.current_data['max_drawdown'] = self.current_data['profit_rate']
         
-        return [profit, profit_rate]
+        return [self.current_data['profit'], self.current_data['profit_rate']]
     
     def get_profit(self):
-        profit, profit_rate = self.update_profit()
-        return [profit, profit_rate]
+        return [self.current_data['profit'], self.current_data['profit_rate']]
     
-    def get_results(self):
+    def get_results(self) -> Dict[str, float]:
         profit, profit_rate = self.get_profit()
-
         return {
             'max_drawdown': self.current_data['max_drawdown'],
             'profit': profit,
