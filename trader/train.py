@@ -107,7 +107,7 @@ def analyze_data():
     env = TradingEnv(df = df, keys=keys, backtest=backtest)
 
     # 定义模型和超参数
-    model = DQN("MlpPolicy", env, learning_rate=1e-5, buffer_size=100000, batch_size=64, verbose=0, device='cuda')
+    model = DQN("MlpPolicy", env, learning_rate=1e-5, buffer_size=100000, batch_size=32, verbose=0, device='cuda')
     # env.load_model('./modes/mode.zip')
     # model = ACER("MlpPolicy", env, verbose=1, tensorboard_log="./logs/")
     # df数据长度

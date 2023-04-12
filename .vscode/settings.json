@@ -2,5 +2,6 @@
     "code-runner.executorMapByFileExtension": {
         "python": "python3",
     },
-    "python.analysis.typeCheckingMode": "basic"
+    "python.analysis.typeCheckingMode": "basic",
+    // "python.venvPath": "C:\\Users\\hubo\\.virtualenvs",
 }

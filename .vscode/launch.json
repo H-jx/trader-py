@@ -14,8 +14,9 @@
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/app.py",
-            "console": "integratedTerminal",
-            "justMyCode": true
+            "console": "internalConsole",
+            "justMyCode": true,
+            "envFile": "${workspaceFolder}/.env"
         }
     ]
 }

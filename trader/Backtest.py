@@ -1,11 +1,7 @@
 from typing import List, Dict
 import datetime
 import pandas as pd
-from enum import Enum
 
-class Signal(Enum):
-    BUY = 'BUY'
-    SELL = 'SELL'
 
 class Trade:
     def __init__(self, close: float, volume: float, action: str, time: pd.Timestamp, profit: float = 0.0):
@@ -34,7 +30,7 @@ class Backtest:
         }
         self.reset()
     def reset(self) -> None:
-        self.current_data = {
+        self.current_data: Dict[str, float] = {
             'balance': self.init_data['balance'],
             'position': self.init_data['position'],
             'last_price': 120,
@@ -56,17 +52,17 @@ class Backtest:
             price = close
             trade_volume = self.trade_volume
             cost = trade_volume * price
-            if action == Signal.BUY and self.current_data['balance'] >= cost:
-                self.current_data['balance'] -= cost + self.transact_fee_rate['makerFeeRate'] * cost
+            if action == "BUY" and self.current_data['balance'] >= cost:
+                self.current_data['balance'] -= (cost + self.transact_fee_rate['makerFeeRate'] * cost)
                 self.current_data['position'] += trade_volume
                 self.current_data['buy_count'] += 1
- 
-            elif action == Signal.SELL:
-                trade_volume = trade_volume if self.current_data['position'] >= trade_volume else self.current_data['position']
-                self.current_data['balance'] += cost - self.transact_fee_rate['makerFeeRate'] * cost
+            elif action == "SELL" and self.current_data['position'] > 0:
+                if self.current_data['position'] < trade_volume:
+                    trade_volume = self.current_data['position']
+                cost = trade_volume * price
+                self.current_data['balance'] += (cost - self.transact_fee_rate['makerFeeRate'] * cost)
                 self.current_data['position'] -= trade_volume
                 self.current_data['sell_count'] += 1
-
             self.update_profit()
             self.trades.append(Trade(
                 time=time, 
@@ -75,12 +71,22 @@ class Backtest:
                 action=action, 
                 profit=self.get_profit()[1]
             ))
+            # self.trades.append({
+            #     'time': time,
+            #     'timestamp': int(time.timestamp() * 1000),
+            #     'close': close,
+            #     'high': close,
+            #     'low': close,
+            #     'open': close,
+            #     'volume': trade_volume,
+            #     'action': action,
+            #     'profit': self.get_profit()[1]
+            # })
       
 
     def update_profit(self) -> List[float]:
         current_asset = self.current_data['balance'] + self.current_data['position'] * self.current_data['last_price']
         initial_asset = self.init_data['balance'] + self.init_data['position'] * self.init_data['start_price']
-
         self.current_data['profit'] = round((current_asset - initial_asset), 4)
         self.current_data['profit_rate'] = round((self.current_data['profit'] / initial_asset), 4)
 
@@ -105,7 +111,7 @@ class Backtest:
         }
 
     def get_trades(self):
-        return self.trades
+        return [trade.__dict__ for trade in self.trades]
     def _get_trade_count(self) -> int:
         count = 0
         if (len(self.trades) < 2):
