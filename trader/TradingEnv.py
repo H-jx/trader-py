@@ -27,10 +27,10 @@ class TradingEnv(gym.Env):
         self.previous_asset = self.backtest.init_data['balance'] # 上一次的资产
         # 定义动作空间和观察空间
         self.action_space = spaces.Discrete(3) # 三种动作：买入、卖出、持有
-        low = np.array([self.df[key].min() for key in keys]).min()
-        high = np.array([self.df[key].max() for key in keys]).max()
-
-        self.observation_space = spaces.Box(low=-2000, high=20000, shape=(len(keys) + 3,)) 
+        # low = np.array([self.df[key].min() for key in keys]).min()
+        # high = np.array([self.df[key].max() for key in keys]).max()
+        # print(low)
+        self.observation_space = spaces.Box(low=-10, high=10, shape=(len(keys) + 3,)) 
 
     def reset(self):
         # 重置环境状态
@@ -73,27 +73,27 @@ class TradingEnv(gym.Env):
         获取奖励值方法，根据当前状态和动作计算奖励值。
         """
         reward = 0
-        diff = current_asset - self.previous_asset
+        pre_profit_rate = (current_asset - self.previous_asset) / self.previous_asset
 
         # 交易频率惩罚
         if action == 0 or action == 1:
             # 交易次数大于3次 惩罚
             if trade_count > 3:
-                reward = -10
+                reward = -100
             elif trade_count > 2:
                 reward = -5
         elif action == 2:
-            if diff == 0:
+            if pre_profit_rate == 0:
                 if profit_rate > 0:
-                    reward += 1
+                    reward += 10
                 elif profit_rate < 0:
-                    reward -= 1
+                    reward -= 5
             else:
-                reward = diff
+                reward = pre_profit_rate * 100
         return reward
 
     def _get_observation(self, profit_rate, trade_count, current_asset):
-        trade_obs = [profit_rate, trade_count, current_asset - self.previous_asset]
+        trade_obs = [profit_rate, trade_count, (current_asset - self.previous_asset) / self.previous_asset ]
         obs = np.array([self.df.iloc[self.current_step][key] for key in self.keys] + trade_obs)
         # obs = np.array([self.df.iloc[self.current_step][key] for key in self.keys])
         return obs

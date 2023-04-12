@@ -76,6 +76,7 @@ def analyze_data():
     df = pd.read_csv('./data/sample-data.csv')
     df = df.dropna()  # 删除包含 NaN 的行
     df['sclose'] = df['close']
+    df['long_rsi'] = df['long_rsi'] / 100
     keys = [
         'sclose',
         'close_less_than_ma10',
@@ -93,6 +94,7 @@ def analyze_data():
         'long_rsi'
     ]
     df[keys + ['close']] = df[keys + ['close']].astype(float)
+
     df['time'] = pd.to_datetime(df['timestamp'], unit='ms')
     normalize(df, [
         'sclose'

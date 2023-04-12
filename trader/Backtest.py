@@ -82,7 +82,7 @@ class Backtest:
         initial_asset = self.init_data['balance'] + self.init_data['position'] * self.init_data['start_price']
 
         self.current_data['profit'] = round((current_asset - initial_asset), 4)
-        self.current_data['profit_rate'] = round((self.current_data['profit'] / initial_asset) * 100, 4)
+        self.current_data['profit_rate'] = round((self.current_data['profit'] / initial_asset), 4)
 
         if self.current_data['profit_rate'] < self.current_data['max_drawdown']:
             self.current_data['max_drawdown'] = self.current_data['profit_rate']
@@ -115,4 +115,7 @@ class Backtest:
             time_diff = now - trade.timestamp
             if time_diff <= 1000 * 60 * 30:
                 count += 1
+
+        if count > 10:
+            count = 10
         return count
