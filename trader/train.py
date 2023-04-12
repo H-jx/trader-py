@@ -111,7 +111,7 @@ def analyze_data():
     # df数据长度
 
     # 开始训练数据
-    model.learn(total_timesteps=len(df) * 20, tb_log_name='run')
+    model.learn(total_timesteps=len(df) * 10, tb_log_name='run')
 
     # 回测
     obs = env.reset()

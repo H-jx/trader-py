@@ -81,13 +81,13 @@ class TradingEnv(gym.Env):
             if trade_count > 3:
                 reward = -10
             elif trade_count > 2:
-                reward = -1
+                reward = -5
         elif action == 2:
             if diff == 0:
                 if profit_rate > 0:
-                    reward += 5
+                    reward += 1
                 elif profit_rate < 0:
-                    reward -= 5
+                    reward -= 1
             else:
                 reward = diff
         return reward
