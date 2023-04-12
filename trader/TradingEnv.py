@@ -24,20 +24,22 @@ class TradingEnv(gym.Env):
         self.current_step = 0 # 步数计数器
         self.done = False # 是否结束标志
         self.max_step = len(self.df) - 1
+        self.previous_asset = self.backtest.init_data['balance'] # 上一次的资产
         # 定义动作空间和观察空间
         self.action_space = spaces.Discrete(3) # 三种动作：买入、卖出、持有
         low = np.array([self.df[key].min() for key in keys]).min()
         high = np.array([self.df[key].max() for key in keys]).max()
 
-        self.observation_space = spaces.Box(low=low, high=high, shape=(len(keys) + 2,)) 
+        self.observation_space = spaces.Box(low=-2000, high=20000, shape=(len(keys) + 3,)) 
 
     def reset(self):
         # 重置环境状态
         self.backtest.reset()
+        self.previous_asset = self.backtest.init_data['balance']
         self.current_step = 0 
         self.done = False 
         self.action = 2
-        return self._get_observation()
+        return self._get_observation(0, 0, self.backtest.init_data['balance'])
 
     def step(self, action):
    
@@ -54,43 +56,44 @@ class TradingEnv(gym.Env):
         self.current_step += 1
         done = self.current_step >= self.max_step
 
-        observation = self._get_observation()# 获取观察
-        reward = self._get_reward(action) # 获取奖励  
-        self.render(action) 
+        trade_result = self.backtest.get_results()
+        trade_count = trade_result.get('trade_count') or 0
+        current_asset = trade_result.get('current_asset') or 0
+        profit_rate = trade_result.get('profit_rate') or 0
+        
+        observation = self._get_observation(profit_rate, trade_count, current_asset)# 获取观察
+        reward = self._get_reward(action, profit_rate, trade_count, current_asset) # 获取奖励 
+        self.previous_asset = current_asset 
+        # self.render(action) 
         return observation, reward, done, {}
 
 
-    def _get_reward(self, action: int):
+    def _get_reward(self, action: int, profit_rate, trade_count, current_asset):
         """
         获取奖励值方法，根据当前状态和动作计算奖励值。
         """
-        trade_result = self.backtest.get_results()
-        trade_count = trade_result.get('trade_count')
-        profit = trade_result.get('profit')
-        profit_rate = trade_result.get('profit_rate')
+        reward = 0
+        diff = current_asset - self.previous_asset
 
         # 交易频率惩罚
-        if trade_count is None:
-            trade_count = 0
         if action == 0 or action == 1:
-            # 交易次数大于2次 惩罚
+            # 交易次数大于3次 惩罚
             if trade_count > 3:
                 reward = -10
             elif trade_count > 2:
                 reward = -1
+        elif action == 2:
+            if diff == 0:
+                if profit_rate > 0:
+                    reward += 5
+                elif profit_rate < 0:
+                    reward -= 5
             else:
-                reward = 0
-        # 持有奖励
-        reward = self.backtest.get_results().get('profit')
-
-        # 延迟奖励/惩罚
-    
+                reward = diff
         return reward
 
-    def _get_observation(self):
-        ##  添加一个self.get_profit(), 作为观察值
-        result = self.backtest.get_results()
-        trade_obs = [result.get('profit_rate'), result.get('trade_count')]
+    def _get_observation(self, profit_rate, trade_count, current_asset):
+        trade_obs = [profit_rate, trade_count, current_asset - self.previous_asset]
         obs = np.array([self.df.iloc[self.current_step][key] for key in self.keys] + trade_obs)
         # obs = np.array([self.df.iloc[self.current_step][key] for key in self.keys])
         return obs

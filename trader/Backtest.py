@@ -37,7 +37,7 @@ class Backtest:
         self.current_data = {
             'balance': self.init_data['balance'],
             'position': self.init_data['position'],
-            'last_price': 0,
+            'last_price': 120,
             'max_drawdown': 0,
             'buy_count': 0,
             'sell_count': 0,
@@ -68,7 +68,6 @@ class Backtest:
                 self.current_data['sell_count'] += 1
 
             self.update_profit()
-            print(time)
             self.trades.append(Trade(
                 time=time, 
                 close=price, 
@@ -102,6 +101,7 @@ class Backtest:
             'buy_count': self.current_data['buy_count'],
             'sell_count': self.current_data['sell_count'],
             'trade_count': self._get_trade_count(),
+            'current_asset': self.current_data['balance'] + self.current_data['position'] * self.current_data['last_price']
         }
 
     def get_trades(self):

@@ -100,7 +100,7 @@ def analyze_data():
    
     
     print(df.head(20))
-    backtest = Backtest(trade_volume = 0.4, balance= 1600, position = 0.1)
+    backtest = Backtest(trade_volume = 0.4, balance= 1600, position = 0)
     # 创建TradingEnv实例
     env = TradingEnv(df = df, keys=keys, backtest=backtest)
 
