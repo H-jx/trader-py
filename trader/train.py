@@ -131,7 +131,7 @@ def analyze_data():
     print('Profit: %.2f%%' % (env.get_profit()))
 
     with open('./data/predict.json', 'w') as f:
-        json.dump(env.backtest.trades, f)
+        json.dump(env.backtest.get_results(), f)
 
  
 # 标准化函数

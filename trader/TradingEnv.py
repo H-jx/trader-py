@@ -79,7 +79,7 @@ class TradingEnv(gym.Env):
         if action == 0 or action == 1:
             # 交易次数大于3次 惩罚
             if trade_count > 5:
-                reward = -100
+                reward = -20
             elif trade_count > 3:
                 reward = -5
         elif action == 2:
@@ -113,11 +113,11 @@ class TradingEnv(gym.Env):
         # 中国时间
         time = pd.to_datetime(self.df.iloc[self.current_step]['time'])
         trade_result = self.backtest.get_results()
-        profit = trade_result.get('profit', 0)
+        profit_rate = trade_result.get('profit_rate', 0)
         trade_count = trade_result.get('trade_count', 0)
         if action == 0:
-            print(f'step: {self.current_step} {price} {time} - 买入 - 收益率: {profit}% {trade_count}')
+            print(f'step: {self.current_step} {price} {time} - 买入 - 收益率: {profit_rate}% {trade_count}')
         elif action == 1:
-            print(f'step: {self.current_step} {price} {time} - 卖出 - 收益率: {profit}% {trade_count}')
+            print(f'step: {self.current_step} {price} {time} - 卖出 - 收益率: {profit_rate}% {trade_count}')
         elif action == 2:
-            print(f'step: {self.current_step} {price} {time} - 持有 - 收益率: {profit}% {trade_count}')
+            print(f'step: {self.current_step} {price} {time} - 持有 - 收益率: {profit_rate}% {trade_count}')
