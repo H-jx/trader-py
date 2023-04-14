@@ -107,13 +107,13 @@ def analyze_data():
     env = TradingEnv(df = df, keys=keys, backtest=backtest)
 
     # 定义模型和超参数
-    model = DQN("MlpPolicy", env, learning_rate=1e-5, buffer_size=100000, batch_size=32, verbose=0, device='cuda')
+    model = DQN("MlpPolicy", env, learning_rate=1e-3, buffer_size=100000, batch_size=32, verbose=0, device='cuda')
     # env.load_model('./modes/mode.zip')
     # model = ACER("MlpPolicy", env, verbose=1, tensorboard_log="./logs/")
     # df数据长度
 
     # 开始训练数据
-    model.learn(total_timesteps=len(df) * 10, tb_log_name='run')
+    # model.learn(total_timesteps=len(df) * 10, tb_log_name='run')
 
     # 回测
     obs = env.reset()
@@ -121,7 +121,7 @@ def analyze_data():
     for i in range(len(df) - 1):
         action, _ = model.predict(obs)
         obs, reward, done, info = env.step(action)
-        env.render(action)
+        # env.render(action)
         if done:
             break
 

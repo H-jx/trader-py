@@ -65,6 +65,7 @@ class TradingEnv(gym.Env):
         reward = self._get_reward(action, profit_rate, trade_count, current_asset) # 获取奖励 
         self.previous_asset = current_asset 
         # self.render(action) 
+
         return observation, reward, done, {}
 
 
@@ -108,16 +109,16 @@ class TradingEnv(gym.Env):
     def get_profit(self):
         return self.backtest.get_results().get('profit_rate') or 0
     
-    def render(self, action):
-        price = self.df.iloc[self.current_step]['close'] # 获取当前价格
-        # 中国时间
-        time = pd.to_datetime(self.df.iloc[self.current_step]['time'])
-        trade_result = self.backtest.get_results()
-        profit_rate = trade_result.get('profit_rate', 0)
-        trade_count = trade_result.get('trade_count', 0)
-        if action == 0:
-            print(f'step: {self.current_step} {price} {time} - 买入 - 收益率: {profit_rate}% {trade_count}')
-        elif action == 1:
-            print(f'step: {self.current_step} {price} {time} - 卖出 - 收益率: {profit_rate}% {trade_count}')
-        elif action == 2:
-            print(f'step: {self.current_step} {price} {time} - 持有 - 收益率: {profit_rate}% {trade_count}')
+    # def render(self, action):
+    #     price = self.df.iloc[self.current_step]['close'] # 获取当前价格
+    #     # 中国时间
+    #     time = pd.to_datetime(self.df.iloc[self.current_step]['time'])
+    #     trade_result = self.backtest.get_results()
+    #     profit_rate = trade_result.get('profit_rate', 0)
+    #     trade_count = trade_result.get('trade_count', 0)
+    #     if action == 0:
+    #         print(f'step: {self.current_step} {price} {time} - 买入 - 收益率: {profit_rate}% {trade_count}')
+    #     elif action == 1:
+    #         print(f'step: {self.current_step} {price} {time} - 卖出 - 收益率: {profit_rate}% {trade_count}')
+    #     elif action == 2:
+    #         print(f'step: {self.current_step} {price} {time} - 持有 - 收益率: {profit_rate}% {trade_count}')
