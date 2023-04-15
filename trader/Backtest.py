@@ -40,6 +40,7 @@ class Backtest:
             'profit': 0,
             'profit_rate': 0,
         }
+
         self.trades = []
 
     def mock_trade(self, action: str, close: float, trade_volume: float, time: pd.Timestamp) -> None:
@@ -52,17 +53,20 @@ class Backtest:
             price = close
             trade_volume = self.trade_volume
             cost = trade_volume * price
+      
             if action == "BUY" and self.current_data['balance'] >= cost:
                 self.current_data['balance'] -= (cost + self.transact_fee_rate['makerFeeRate'] * cost)
                 self.current_data['position'] += trade_volume
                 self.current_data['buy_count'] += 1
-            elif action == "SELL" and self.current_data['position'] > 0:
+               
+            elif action == "SELL" and self.current_data['position'] > 0.001:
                 if self.current_data['position'] < trade_volume:
                     trade_volume = self.current_data['position']
                 cost = trade_volume * price
                 self.current_data['balance'] += (cost - self.transact_fee_rate['makerFeeRate'] * cost)
                 self.current_data['position'] -= trade_volume
                 self.current_data['sell_count'] += 1
+
             self.update_profit()
             self.trades.append(Trade(
                 time=time, 
