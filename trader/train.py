@@ -104,12 +104,14 @@ def analyze_data():
     
     print(df.head(20))
     backtest = Backtest(trade_volume = 0.1, balance= 1600, position = 0)
+
+
     # 创建TradingEnv实例
     env = TradingEnv(df = df, keys=keys, backtest=backtest)
     # env.load_model('./modes/DQN.zip')
 
-    # loaded_model = DQN.load('./models/DQN')
-    # env.model = loaded_model
+    loaded_model = DQN.load('./models/DQN')
+    env.model = loaded_model
     # 定义模型和超参数
     model = DQN("MlpPolicy", env, learning_rate=1e-3, buffer_size=100000, batch_size=32, verbose=0, device='cuda')
    
@@ -121,16 +123,16 @@ def analyze_data():
 
     # 回测
     obs = env.reset()
-    print('obs')
+    print('predict')
     for i in range(len(df) - 1):
         action, _ = model.predict(obs)
         obs, reward, done, info = env.step(action)
-        env.render(action)
+        # env.render(action)
         if done:
             break
 
-    # if env.get_profit() > 0:
-    #     model.save('./modes/DQN')
+    if env.get_profit() > 0:
+        model.save('./modes/DQN')
     env.close()
     print('Profit: %.2f%%' % (env.get_profit()))
 

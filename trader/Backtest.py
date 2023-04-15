@@ -5,7 +5,7 @@ import pandas as pd
 
 class Trade:
     def __init__(self, close: float, volume: float, action: str, time: pd.Timestamp, profit: float = 0.0):
-        self.time = time
+        self.time = str(time)
         self.timestamp = int(time.timestamp() * 1000)
         self.close = close
         self.high = close

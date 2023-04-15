@@ -81,7 +81,7 @@ class TradingEnv(gym.Env):
         if action == 0 or action == 1:
             # 交易次数大于3次 惩罚
             if trade_count > 5:
-                reward = -20
+                reward = -10
             elif trade_count > 3:
                 reward = -5
         elif action == 2:
@@ -89,7 +89,7 @@ class TradingEnv(gym.Env):
                 if profit_rate > 0:
                     reward += 10
                 elif profit_rate < 0:
-                    reward -= 5
+                    reward -= 1
             else:
                 reward = pre_profit_rate * 100
         return reward
