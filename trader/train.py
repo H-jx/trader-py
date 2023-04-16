@@ -70,40 +70,39 @@ def download():
             writer.writerow(row.split(','))
 
 # download()
-
-def analyze_data():
-
-    # 转换为DataFrame
-    df = pd.read_csv('./data/sample-data.csv')
+def get_data(path: str):
+    df = pd.read_csv(path)
     df = df.dropna()  # 删除包含 NaN 的行
     df['sclose'] = df['close']
-    df['long_rsi'] = df['long_rsi'] / 100
+    df['rsi_4h'] = df['rsi_4h'] / 100
+    df['rsi_1d'] = df['rsi_1d'] / 100
     keys = [
         'sclose',
-        'close_less_than_ma10',
-        'ma10_less_than_ma30',
-        'ma30_less_than_ma60',
-        'sell_rate',
-        'low_boll_rate',
-        'high_boll_rate',
-        'boll_range_rate',
-        'changepercent',
-        'upper_shadow_rate',
-        'lower_shadow_rate',
-        'close_ma60_rate',
-        'volume_ma20_rate',
-        'long_rsi'
+        'close_less_than_ma10_5m',
+        'ma10_5m_less_than_ma30_5m',
+        'ma30_5m_less_than_ma60_5m',
+        'boll_high_or_low_rate_5m',
+        'boll_range_rate_5m',
+        'close_ma60_rate_5m',
+        'close_ma60_rate_4h',
+        'volume_ma20_rate_5m',
+        'volume_ma20_rate_4h',
+        'rsi_4h',
+        'rsi_1d',
     ]
-    df[keys + ['close']] = df[keys + ['close']].astype(float)
+    df[keys + ['close', 'open', 'high']] = df[keys + ['close', 'open', 'high']].astype(float)
 
     df['time'] = pd.to_datetime(df['timestamp'], unit='ms')
     normalize(df, [
         'sclose'
     ])
+    return [df, keys]
+
+def analyze_data():
+    df, keys  = get_data('./data/sample-data.csv')
    
-    
     print(df.head(20))
-    backtest = Backtest(trade_volume = 0.1, balance= 1600, position = 0)
+    backtest = Backtest(trade_volume = 0.1, balance= 3600, position = 0)
 
 
     # 创建TradingEnv实例
@@ -113,26 +112,28 @@ def analyze_data():
     loaded_model = DQN.load('./models/DQN')
     env.model = loaded_model
     # 定义模型和超参数
-    model = DQN("MlpPolicy", env, learning_rate=1e-3, buffer_size=100000, batch_size=32, verbose=0, device='cuda')
+    model = DQN("MlpPolicy", env, learning_rate=1e-2, buffer_size=100000, batch_size=32, verbose=0, device='cuda')
    
     # model = ACER("MlpPolicy", env, verbose=1, tensorboard_log="./logs/")
     # df数据长度
 
     # 开始训练数据
-    model.learn(total_timesteps=len(df) * 10, tb_log_name='run')
+    model.learn(total_timesteps=len(df) * 5, tb_log_name='run')
 
     # 回测
+    df, keys  = get_data('./data/predict-data.csv')
+    env.set_df(df)
     obs = env.reset()
     print('predict')
+    
     for i in range(len(df) - 1):
         action, _ = model.predict(obs)
         obs, reward, done, info = env.step(action)
-        # env.render(action)
         if done:
             break
 
     if env.get_profit() > 0:
-        model.save('./modes/DQN')
+        model.save('./models/DQN')
     env.close()
     print('Profit: %.2f%%' % (env.get_profit()))
 

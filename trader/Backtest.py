@@ -4,13 +4,13 @@ import pandas as pd
 
 
 class Trade:
-    def __init__(self, close: float, volume: float, action: str, time: pd.Timestamp, profit: float = 0.0):
+    def __init__(self, close: float, open: float, high: float, volume: float, action: str, time: pd.Timestamp, profit: float = 0.0):
         self.time = str(time)
         self.timestamp = int(time.timestamp() * 1000)
         self.close = close
-        self.high = close
-        self.low = close
-        self.open = close
+        self.high = high
+        self.low = min(close, open)
+        self.open = open
         self.volume = volume
         self.action = action
         self.profit = profit
@@ -39,11 +39,13 @@ class Backtest:
             'sell_count': 0,
             'profit': 0,
             'profit_rate': 0,
+            'current_asset': self.init_data['balance'],
+            'previous_asset': self.init_data['balance'],
         }
 
         self.trades = []
 
-    def mock_trade(self, action: str, close: float, trade_volume: float, time: pd.Timestamp) -> None:
+    def mock_trade(self, action: str, open: float, close: float, high: float, trade_volume: float, time: pd.Timestamp) -> None:
         if self.init_data['start_price'] == 0:
             self.init_data['start_price'] = close
 
@@ -51,7 +53,6 @@ class Backtest:
 
         if action:
             price = close
-            trade_volume = self.trade_volume
             cost = trade_volume * price
       
             if action == "BUY" and self.current_data['balance'] >= cost:
@@ -68,13 +69,16 @@ class Backtest:
                 self.current_data['sell_count'] += 1
 
             self.update_profit()
-            self.trades.append(Trade(
-                time=time, 
-                close=price, 
-                volume=trade_volume, 
-                action=action, 
-                profit=self.get_profit()[1]
-            ))
+
+        self.trades.append(Trade(
+            time=time, 
+            close=close,
+            high=high,
+            open=open,
+            volume=trade_volume, 
+            action=action, 
+            profit=self.get_profit()[1]
+        ))
             # self.trades.append({
             #     'time': time,
             #     'timestamp': int(time.timestamp() * 1000),
@@ -91,8 +95,10 @@ class Backtest:
     def update_profit(self) -> List[float]:
         current_asset = self.current_data['balance'] + self.current_data['position'] * self.current_data['last_price']
         initial_asset = self.init_data['balance'] + self.init_data['position'] * self.init_data['start_price']
-        self.current_data['profit'] = round((current_asset - initial_asset), 4)
-        self.current_data['profit_rate'] = round((self.current_data['profit'] / initial_asset), 4)
+        self.current_data['previous_asset'] = self.current_data['current_asset']
+        self.current_data['current_asset'] = current_asset
+        self.current_data['profit'] = round((current_asset - initial_asset), 6)
+        self.current_data['profit_rate'] = round((self.current_data['profit'] / initial_asset), 6)
 
         if self.current_data['profit_rate'] < self.current_data['max_drawdown']:
             self.current_data['max_drawdown'] = self.current_data['profit_rate']
@@ -111,7 +117,8 @@ class Backtest:
             'buy_count': self.current_data['buy_count'],
             'sell_count': self.current_data['sell_count'],
             'trade_count': self._get_trade_count(),
-            'current_asset': self.current_data['balance'] + self.current_data['position'] * self.current_data['last_price']
+            'current_asset': self.current_data['current_asset'],
+            'previous_asset': self.current_data['previous_asset'],
         }
 
     def get_trades(self):
@@ -123,9 +130,25 @@ class Backtest:
         now = self.trades[-1].timestamp
         for trade in self.trades:
             time_diff = now - trade.timestamp
-            if time_diff <= 1000 * 60 * 30:
+            if time_diff <= 1000 * 60 * 60 and trade.action:
                 count += 1
 
         if count > 10:
             count = 10
         return count
+    
+
+backtest = Backtest(trade_volume = 0.1, balance= 1600, position = 0)
+
+# mock_trade中 time 设定具体时间, 不要now   
+
+# backtest.mock_trade(action="BUY", open=120, close=1000, high=120, trade_volume=1, time=pd.Timestamp(2023, 4, 15, 15, 00))
+# backtest.mock_trade(action="SELL", open=60, close=60, high=120, trade_volume=1, time=pd.Timestamp(2023, 4, 15, 15, 5))
+# backtest.mock_trade(action="", open=120, close=1200, high=1200, trade_volume=1, time=pd.Timestamp(2023, 4, 15, 15, 10))
+# backtest.mock_trade(action="SELL", open=1200, close=1200, high=1200, trade_volume=1, time=pd.Timestamp(2023, 4, 15, 15, 15))
+# backtest.mock_trade(action="BUY", open=1200, close=1200, high=1200, trade_volume=1, time=pd.Timestamp(2023, 4, 15, 15, 30))
+# backtest.mock_trade(action="", open=1200, close=1200, high=1200, trade_volume=1, time=pd.Timestamp(2023, 4, 15, 15, 35))
+# backtest.mock_trade(action="", open=1200, close=1200, high=1200, trade_volume=1, time=pd.Timestamp(2023, 4, 15, 15, 40))
+# backtest.mock_trade(action="", open=1200, close=1200, high=1200, trade_volume=1, time=pd.Timestamp(2023, 4, 15, 15, 45))
+# backtest.mock_trade(action="", open=1200, close=1200, high=1200, trade_volume=1, time=pd.Timestamp(2023, 4, 15, 15, 50))
+# print(backtest.get_results())
