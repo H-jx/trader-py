@@ -96,6 +96,7 @@ def get_data(path: str):
     normalize(df, [
         'sclose'
     ])
+    
     return [df, keys]
 
 def analyze_data():
@@ -112,13 +113,13 @@ def analyze_data():
     loaded_model = DQN.load('./models/DQN')
     env.model = loaded_model
     # 定义模型和超参数
-    model = DQN("MlpPolicy", env, learning_rate=1e-2, buffer_size=100000, batch_size=32, verbose=0, device='cuda')
+    model = DQN("MlpPolicy", env, learning_rate=1e-3, buffer_size=100000, batch_size=32, verbose=0, device='cuda')
    
     # model = ACER("MlpPolicy", env, verbose=1, tensorboard_log="./logs/")
     # df数据长度
 
     # 开始训练数据
-    model.learn(total_timesteps=len(df) * 5, tb_log_name='run')
+    model.learn(total_timesteps=len(df) * 30, tb_log_name='run')
 
     # 回测
     df, keys  = get_data('./data/predict-data.csv')
@@ -135,7 +136,8 @@ def analyze_data():
     if env.get_profit() > 0:
         model.save('./models/DQN')
     env.close()
-    print('Profit: %.2f%%' % (env.get_profit()))
+    print('Profit: %.2f%%' % (env.get_profit() * 100))
+    print(env.backtest.get_results())
 
     with open('./data/predict.json', 'w') as f:
         json.dump(env.backtest.get_trades(), f)

@@ -40,7 +40,7 @@ class TradingEnv(gym.Env):
         self.current_step = 0 
         self.done = False 
         self.action = 2
-        return self._get_observation(0, 0, self.backtest.init_data['balance'], self.backtest.init_data['balance'])
+        return self._get_observation(0, 0, self.backtest.init_data['balance'], self.backtest.init_data['balance'], 0)
 
     def step(self, action):
    
@@ -51,7 +51,7 @@ class TradingEnv(gym.Env):
         current_open = self.df.iloc[self.current_step]['open']
         current_high = self.df.iloc[self.current_step]['high']
         current_time = self.df.iloc[self.current_step]['time']
-      
+        row = self.df.iloc[self.current_step]
         if action == 0: # 买入
             self.backtest.mock_trade(action = "BUY", close = current_price, open = current_open, high = current_high, trade_volume = 1, time = current_time)
         elif action == 1: # 卖出
@@ -66,14 +66,19 @@ class TradingEnv(gym.Env):
         current_asset = trade_result.get('current_asset') or 0
         profit_rate = trade_result.get('profit_rate') or 0
         previous_asset = trade_result.get('previous_asset', 0.001)
-        observation = self._get_observation(profit_rate, trade_count, current_asset, previous_asset)# 获取观察
-        reward = self._get_reward(action, profit_rate, trade_count, current_asset, previous_asset) # 获取奖励 
+        position_ratio = trade_result.get('position_ratio', 0) 
+        # 亏空提前结束
+        if profit_rate  < -0.90:
+            print('done', profit_rate)
+            done = True
+        observation = self._get_observation(profit_rate, trade_count, current_asset, previous_asset, position_ratio)# 获取观察
+        reward = self._get_reward(action, profit_rate, trade_count, current_asset, previous_asset, position_ratio) # 获取奖励 
         # self.render(action) 
 
         return observation, reward, done, {}
 
 
-    def _get_reward(self, action: int, profit_rate, trade_count, current_asset, previous_asset):
+    def _get_reward(self, action: int, profit_rate, trade_count, current_asset, previous_asset, position_ratio):
         """
         获取奖励值方法，根据当前状态和动作计算奖励值。
         """
@@ -86,7 +91,9 @@ class TradingEnv(gym.Env):
         if action == 0:
             # 交易次数大于3次 惩罚
             if trade_count > 3:
-                freq_penalty = -30
+                freq_penalty = -5
+            else:
+                freq_penalty = 8
         # 卖出奖励、惩罚
         elif action == 1:
             # 卖出时，如果盈利，奖励
@@ -97,15 +104,19 @@ class TradingEnv(gym.Env):
                  sell_reward = -10 + pre_profit_rate * 100
         # 持有奖励
         elif action == 2:
-            if profit_rate > 0:
-                hold_reward = 20 + profit_rate * 100
-            elif profit_rate < 0:
-                hold_reward = -10 + profit_rate * 100
+            if position_ratio > 0:
+                hold_reward = 10 + position_ratio * 100 + pre_profit_rate * 100
+            elif position_ratio < 0.00001:
+                hold_reward = 1
 
         return freq_penalty + hold_reward + sell_reward
-
-    def _get_observation(self, profit_rate, trade_count, current_asset, previous_asset):
-        trade_obs = [profit_rate, trade_count, (current_asset - previous_asset) / previous_asset ]
+    def close(self):
+        # 在结束时需要将当前状态下的收益作为最终的回报传递给模型
+        trade_result = self.backtest.get_results()
+        profit_rate = trade_result.get('profit_rate', 0)
+        return profit_rate * 100
+    def _get_observation(self, profit_rate, trade_count, current_asset, previous_asset, position_ratio):
+        trade_obs = [profit_rate, trade_count, (current_asset - previous_asset) / previous_asset]
         obs = np.array([self.df.iloc[self.current_step][key] for key in self.keys] + trade_obs)
         # obs = np.array([self.df.iloc[self.current_step][key] for key in self.keys])
         return obs
