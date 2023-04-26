@@ -10,7 +10,7 @@ from sklearn.preprocessing import StandardScaler
 from stable_baselines3.dqn.dqn import DQN
 
 from trader.TradingEnv import TradingEnv
-from trader.util import get_interval
+from trader.util import get_interval, compress_data
 from trader.Backtest import Backtest
 # from stable_baselines import ACER
 # from collections import deque
@@ -73,37 +73,33 @@ def download():
 def get_data(path: str):
     df = pd.read_csv(path)
     df = df.dropna()  # 删除包含 NaN 的行
-    df['sclose'] = df['close']
     df['rsi_4h'] = df['rsi_4h'] / 100
-    df['rsi_1d'] = df['rsi_1d'] / 100
     keys = [
-        'sclose',
         'close_less_than_ma10_5m',
         'ma10_5m_less_than_ma30_5m',
         'ma30_5m_less_than_ma60_5m',
-        'boll_high_or_low_rate_5m',
+        'change_rate_5m',
         'boll_range_rate_5m',
         'close_ma60_rate_5m',
         'close_ma60_rate_4h',
         'volume_ma20_rate_5m',
         'volume_ma20_rate_4h',
         'rsi_4h',
-        'rsi_1d',
+        'close_ma30_rate_1d',
     ]
     df[keys + ['close', 'open', 'high']] = df[keys + ['close', 'open', 'high']].astype(float)
 
     df['time'] = pd.to_datetime(df['timestamp'], unit='ms')
-    normalize(df, [
-        'sclose'
-    ])
-    
-    return [df, keys]
+
+    compress_data(df, ['volume_ma20_rate_5m', 'volume_ma20_rate_4h'])
+
+    return [df.head(10000), keys]
 
 def analyze_data():
     df, keys  = get_data('./data/sample-data.csv')
    
     print(df.head(20))
-    backtest = Backtest(trade_volume = 0.1, balance= 3600, position = 0)
+    backtest = Backtest(trade_volume = 0.1, balance= 4600, position = 0)
 
 
     # 创建TradingEnv实例
@@ -113,13 +109,13 @@ def analyze_data():
     loaded_model = DQN.load('./models/DQN')
     env.model = loaded_model
     # 定义模型和超参数
-    model = DQN("MlpPolicy", env, learning_rate=1e-3, buffer_size=100000, batch_size=32, verbose=0, device='cuda')
+    model = DQN("MlpPolicy", env, learning_rate=1e-3, buffer_size=100000, batch_size=16, verbose=0, device='cuda')
    
     # model = ACER("MlpPolicy", env, verbose=1, tensorboard_log="./logs/")
     # df数据长度
 
     # 开始训练数据
-    model.learn(total_timesteps=len(df) * 30, tb_log_name='run')
+    model.learn(total_timesteps=len(df) * 10, tb_log_name='run')
 
     # 回测
     df, keys  = get_data('./data/predict-data.csv')
@@ -143,23 +139,3 @@ def analyze_data():
         json.dump(env.backtest.get_trades(), f)
 
  
-# 标准化函数
-def normalize(df, cols):
-    """
-    对 DataFrame 中的指定列进行标准化
-    
-    Args:
-        df (pandas.DataFrame): 要标准化的 DataFrame
-        cols (List[str]): 需要标准化的列名列表
-        
-    Returns:
-        pandas.DataFrame: 标准化后的 DataFrame
-    """
-    # 按列计算平均值和标准差
-    means = df[cols].mean()
-    stds = df[cols].std()
-
-    # 标准化
-    df[cols] = (df[cols] - means) / stds
-
-    return df

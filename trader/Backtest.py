@@ -151,15 +151,18 @@ backtest = Backtest(trade_volume = 0.1, balance= 1600, position = 0)
 
 # mock_trade中 time 设定具体时间, 不要now   
 
-backtest.mock_trade(action="BUY", open=120, close=1000, high=120, trade_volume=1, time=pd.Timestamp(2023, 4, 15, 15, 00))
-backtest.mock_trade(action="SELL", open=60, close=60, high=120, trade_volume=1, time=pd.Timestamp(2023, 4, 15, 15, 5))
+# backtest.mock_trade(action="BUY", open=120, close=1000, high=120, trade_volume=1, time=pd.Timestamp(2023, 4, 15, 15, 00))
+# backtest.mock_trade(action="SELL", open=60, close=60, high=120, trade_volume=1, time=pd.Timestamp(2023, 4, 15, 15, 5))
 # backtest.mock_trade(action="", open=120, close=1200, high=1200, trade_volume=1, time=pd.Timestamp(2023, 4, 15, 15, 10))
 # backtest.mock_trade(action="SELL", open=1200, close=1200, high=1200, trade_volume=1, time=pd.Timestamp(2023, 4, 15, 15, 15))
-backtest.mock_trade(action="BUY", open=1200, close=1200, high=200, trade_volume=1, time=pd.Timestamp(2023, 4, 15, 15, 30))
+# backtest.mock_trade(action="BUY", open=1200, close=1200, high=200, trade_volume=1, time=pd.Timestamp(2023, 4, 15, 15, 30))
 # backtest.mock_trade(action="SELL", open=2200, close=400, high=300, trade_volume=1, time=pd.Timestamp(2023, 4, 15, 15, 35))
 
-backtest.mock_trade(action="", open=1200, close=2200, high=1200, trade_volume=1, time=pd.Timestamp(2023, 4, 15, 15, 35))
+# backtest.mock_trade(action="", open=1200, close=2200, high=1200, trade_volume=1, time=pd.Timestamp(2023, 4, 15, 15, 35))
 # backtest.mock_trade(action="", open=1200, close=1200, high=1200, trade_volume=1, time=pd.Timestamp(2023, 4, 15, 15, 40))
 # backtest.mock_trade(action="", open=1200, close=1200, high=1200, trade_volume=1, time=pd.Timestamp(2023, 4, 15, 15, 45))
 # backtest.mock_trade(action="", open=1200, close=1200, high=1200, trade_volume=1, time=pd.Timestamp(2023, 4, 15, 15, 50))
-print(backtest.get_results())
+# print(backtest.get_results())
+
+if not 0.0 and not 0.0 and not 0.0:
+    print(1)
