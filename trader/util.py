@@ -1,3 +1,4 @@
+import math
 from typing import Tuple
 from datetime import datetime, timedelta
 import pandas as pd
@@ -47,3 +48,14 @@ def compress_data(data: pd.DataFrame, columns_to_compress=None):
     
     # 返回压缩后的数据
     return data
+
+
+
+def get_score(num, target):
+    delta = abs(num - target)
+    score = 100 * math.exp(-delta * delta / 10)
+    if num > target:
+        score *= target / num
+    else:
+        score *= num / target
+    return score

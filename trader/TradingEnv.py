@@ -29,7 +29,7 @@ class TradingEnv(gym.Env):
         low = np.array([self.df[key].min() for key in keys]).min()
         high = np.array([self.df[key].max() for key in keys]).max()
         print(low, high)
-        self.observation_space = spaces.Box(low=low, high=high, shape=(len(keys) + 1,)) 
+        self.observation_space = spaces.Box(low=low, high=high, shape=(len(keys) + 5,)) 
 
     def set_df(self, df):
         self.df = df
@@ -40,7 +40,7 @@ class TradingEnv(gym.Env):
         self.current_step = 0 
         self.done = False 
         self.action = 2
-        return self._get_observation(0, 0, self.backtest.init_data['balance'], self.backtest.init_data['balance'], 0)
+        return self._get_observation(0, 0, 0, 0, 0, 0)
 
     def step(self, action):
    
@@ -52,11 +52,12 @@ class TradingEnv(gym.Env):
         current_high = self.df.iloc[self.current_step]['high']
         current_time = self.df.iloc[self.current_step]['time']
         row = self.df.iloc[self.current_step]
-        trade_volume = 1000 / current_price
+        trade_volume = 600 / current_price
+        trade_status = 0
         if action == 0: # 买入
-            self.backtest.mock_trade(action = "BUY", close = current_price, open = current_open, high = current_high, trade_volume = trade_volume, time = current_time)
+            trade_status = self.backtest.mock_trade(action = "BUY", close = current_price, open = current_open, high = current_high, trade_volume = trade_volume, time = current_time)
         elif action == 1: # 卖出
-            self.backtest.mock_trade(action = "SELL", close = current_price, open = current_open, high = current_high, trade_volume = trade_volume, time = current_time)
+            trade_status = self.backtest.mock_trade(action = "SELL", close = current_price, open = current_open, high = current_high, trade_volume = trade_volume, time = current_time)
         elif action == 2: # 持有
             self.backtest.mock_trade(action = "", close = current_price, open = current_open, high = current_high, trade_volume = 0, time = current_time)
  
@@ -66,27 +67,28 @@ class TradingEnv(gym.Env):
         profit_rate = trade_result.get('profit_rate') or 0
         previous_asset = trade_result.get('previous_asset', 0.001)
         position_ratio = trade_result.get('position_ratio', 0) 
+        pre_profit = (current_asset - previous_asset)
+        pre_profit_rate = pre_profit / previous_asset
+
+        observation = self._get_observation(profit_rate, trade_count, pre_profit_rate, pre_profit, position_ratio, trade_status)# 获取观察
         # 亏空提前结束
-        if profit_rate  < -0.90:
-            print('done', profit_rate * 100)
-            done = True
-        observation = self._get_observation(profit_rate, trade_count, current_asset, previous_asset, position_ratio)# 获取观察
-        reward = self._get_reward(action, profit_rate, trade_count, current_asset, previous_asset, position_ratio) # 获取奖励 
+        if profit_rate  < -0.98:
+            return observation, profit_rate * 100, True, {}
+
+        reward = self._get_reward(action, profit_rate, trade_count, pre_profit_rate, pre_profit, position_ratio) # 获取奖励 
         # self.render(action) 
         self.current_step += 1
         done = self.current_step >= self.max_step
         return observation, reward, done, {}
 
 
-    def _get_reward(self, action: int, profit_rate, trade_count, current_asset, previous_asset, position_ratio):
+    def _get_reward(self, action: int, profit_rate, trade_count, pre_profit_rate, pre_profit, position_ratio):
         """
         获取奖励值方法，根据当前状态和动作计算奖励值。
         """
         close_ma60_rate_4h = self.df.iloc[self.current_step]['close_ma60_rate_4h']
         ma10_5m_less_than_ma30_5m = self.df.iloc[self.current_step]['ma10_5m_less_than_ma30_5m']
         ma30_5m_less_than_ma60_5m = self.df.iloc[self.current_step]['ma30_5m_less_than_ma60_5m']
-        pre_profit_rate = (current_asset - previous_asset) / previous_asset
-        pre_profit = (current_asset - previous_asset)
         freq_penalty = 0
         hold_reward = 0
         sell_reward = 0
@@ -117,9 +119,9 @@ class TradingEnv(gym.Env):
         trade_result = self.backtest.get_results()
         profit_rate = trade_result.get('profit_rate', 0)
         return profit_rate * 100
-    def _get_observation(self, profit_rate, trade_count, current_asset, previous_asset, position_ratio):
-        # trade_obs = [profit_rate, trade_count, (current_asset - previous_asset) / previous_asset]
-        obs = np.array([self.df.iloc[self.current_step][key] for key in self.keys] + [trade_count / 10])
+    def _get_observation(self, profit_rate, trade_count, pre_profit_rate, pre_profit, position_ratio, trade_status):
+        trade_obs = [profit_rate, pre_profit_rate, position_ratio, trade_count / 10, trade_status]
+        obs = np.array([self.df.iloc[self.current_step][key] for key in self.keys] + trade_obs)
         # obs = np.array([self.df.iloc[self.current_step][key] for key in self.keys])
         return obs
 

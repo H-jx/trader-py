@@ -93,7 +93,7 @@ def get_data(path: str):
 
     compress_data(df, ['volume_ma20_rate_5m', 'volume_ma20_rate_4h'])
 
-    return [df.head(10000), keys]
+    return [df, keys]
 
 def analyze_data():
     df, keys  = get_data('./data/sample-data.csv')
@@ -109,7 +109,7 @@ def analyze_data():
     loaded_model = DQN.load('./models/DQN')
     env.model = loaded_model
     # 定义模型和超参数
-    model = DQN("MlpPolicy", env, learning_rate=1e-3, buffer_size=100000, batch_size=16, verbose=0, device='cuda')
+    model = DQN("MlpPolicy", env, learning_rate=1e-3, buffer_size=100000, batch_size=64, verbose=0, device='cuda')
    
     # model = ACER("MlpPolicy", env, verbose=1, tensorboard_log="./logs/")
     # df数据长度
