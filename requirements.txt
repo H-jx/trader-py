@@ -2,3 +2,10 @@ Flask==2.0.2
 Flask-SocketIO==5.1.1
 tensorflow_gpu==2.4.0
 tensorflow==2.4.0 
+numpy==1.24.4
+gym==0.26.2
+pandas==2.0.3
+requests==2.31.0
+typing-extensions==3.7.4
+backtrader==1.9.78.123
+stable_baselines3==2.0.0

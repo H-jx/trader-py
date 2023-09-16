@@ -6,7 +6,7 @@ import datetime
 import pandas as pd
 import requests
 import os
-from sklearn.preprocessing import StandardScaler
+# from sklearn.preprocessing import StandardScaler
 from stable_baselines3.dqn.dqn import DQN
 
 from trader.TradingEnv import TradingEnv
@@ -16,6 +16,10 @@ from trader.Backtest import Backtest
 # from collections import deque
 import tensorflow as tf
 import torch
+import numpy as np
+import tensorflow as tf
+from tensorflow import keras
+import matplotlib.pyplot as plt
 
 # 用此方法检查，有效。
 # torch.zeros(1).cuda()
@@ -75,11 +79,11 @@ def get_data(path: str):
     df = df.dropna()  # 删除包含 NaN 的行
     df['rsi_4h'] = df['rsi_4h'] / 100
     keys = [
-        'close_less_than_ma10_5m',
-        'ma10_5m_less_than_ma30_5m',
-        'ma30_5m_less_than_ma60_5m',
-        'change_rate_5m',
-        'boll_range_rate_5m',
+        # 'close_less_than_ma10_5m',
+        # 'ma10_5m_less_than_ma30_5m',
+        # 'ma30_5m_less_than_ma60_5m',
+        # 'change_rate_5m',
+        # 'boll_range_rate_5m',
         'close_ma60_rate_5m',
         'close_ma60_rate_4h',
         'volume_ma20_rate_5m',
@@ -93,7 +97,7 @@ def get_data(path: str):
 
     compress_data(df, ['volume_ma20_rate_5m', 'volume_ma20_rate_4h'])
 
-    return [df, keys]
+    return [df.head(int(len(df)*0.5)), keys]
 
 def analyze_data():
     df, keys  = get_data('./data/sample-data.csv')
@@ -139,3 +143,43 @@ def analyze_data():
         json.dump(env.backtest.get_trades(), f)
 
  
+def train2():
+
+    df, keys = get_data('./data/sample-data.csv') 
+    fig, ax = plt.subplots(figsize=(15, 5))
+
+    # 处理数据
+    X = df[keys].values
+    X = X.reshape((-1, 1, 1, len(keys), 1))
+    y = df['close'].values
+
+    # 拆分数据集
+    split_idx = int(0.8*len(df))
+    X_train, X_test = X[:split_idx], X[split_idx:]
+    y_train, y_test = y[:split_idx], y[split_idx:]
+
+    # 定义ConvLSTM模型
+    model = keras.models.Sequential()
+    model.add(keras.layers.ConvLSTM2D(32, (1, len(keys)), input_shape=(1, 1, len(keys), 1)))
+    model.add(keras.layers.Flatten())
+    model.add(keras.layers.Dense(1))
+
+    model.compile(optimizer='adam', loss='mae') 
+
+    # 训练模型
+    model.fit(X_train, y_train, 
+            epochs=20, 
+            validation_data=(X_test, y_test))
+
+    # 预测并计算MAE
+    y_pred = model.predict(X_test)
+    mae = np.mean(np.abs(y_test - y_pred))
+
+    ax.plot(y_test, color='b', label='True')
+    ax.plot(y_pred, color='r', label='Predicted')
+    ax.set_xlabel('Time')  
+    ax.set_ylabel('Close Price')
+    ax.legend()
+    print('MAE:', mae)
+    plt.show()
+    plt.close('all')
